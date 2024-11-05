@@ -1,0 +1,16 @@
+{
+    "java.debug.settings.onBuildFailureProceed": true,
+    "java.configuration.updateBuildConfiguration": "interactive",
+    "yaml.schemas": {"https://raw.githubusercontent.com/jewelshkjony/fast-cli/main/schema/fast.json": "fast.yml"},
+    "java.project.referencedLibraries": [
+        "/Users/hridoy/.local/share/Fast/lib/appinventor/*.jar",
+        "/Users/hridoy/.local/share/Fast/lib/kotlinc/lib/kotlin-stdlib.jar",
+        "/Users/hridoy/.local/share/Fast/lib/kotlinc/lib/annotations-13.0.jar",
+        "deps/*.jar"
+    ],
+    "java.configuration.runtimes": [{
+        "path": "/Library/Internet Plug-Ins/JavaAppletPlugin.plugin/Contents/Home",
+        "default": true,
+        "name": "JavaSE-1.8"
+    }]
+}
