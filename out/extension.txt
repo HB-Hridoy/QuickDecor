@@ -1,0 +1,88 @@
+<div align="center">
+<h1><kbd>🧩 QuickDecor</kbd></h1>
+An extension for MIT App Inventor 2.<br>
+Developed by Hridoy by Fast.
+</div>
+
+## 📝 Specifications
+* **
+📦 **Package:** com.hridoy.quickdecor
+💾 **Size:** 9.68 KB
+⚙️ **Version:** 1.0
+📱 **Minimum API Level:** 7
+📅 **Updated On:** [date=2025-06-09 timezone="Africa/Johannesburg"]
+💻 **Built & documented using:** [FAST](https://community.appinventor.mit.edu/t/fast-an-efficient-way-to-build-extensions/129103?u=jewel) <small><mark>v2.8.4</mark></small>
+
+## <kbd>Event:</kbd>
+**QuickDecor** has total 1 event.
+
+### ErrorOccurred
+ErrorOccurred
+
+| Parameter | Type
+| - | - |
+| errorFrom | text
+| error | text
+
+## <kbd>Methods:</kbd>
+**QuickDecor** has total 6 methods.
+
+### SetPadding
+Sets padding for the component. Use format: single value (e.g., '10') or four values (e.g., '10,20,30,40') for top, left, bottom, right.
+
+| Parameter | Type
+| - | - |
+| component | any
+| padding | text
+
+### SetMargin
+Sets margin for the component. Use format: single value (e.g., '10') or four values (e.g., '10,20,30,40') for top, left, bottom, right.
+
+| Parameter | Type
+| - | - |
+| component | any
+| margin | text
+
+### CreateGradientBackgroundTemplate
+CreateGradientBackgroundTemplate
+
+| Parameter | Type
+| - | - |
+| id | text
+| colorsList | list
+| orientation | number
+| shape | number
+| cornersRadius | list
+| strokeWidth | number
+| strokeColor | number
+
+### ApplyGradientBackground
+ApplyGradientBackground
+
+| Parameter | Type
+| - | - |
+| id | text
+| component | component
+
+### MasterGradientBackground
+Set the gradient to any view's background
+
+| Parameter | Type
+| - | - |
+| component | component
+| colorsList | list
+| orientation | number
+| shape | number
+| cornersRadius | list
+| strokeWidth | number
+| strokeColor | number
+
+### ProcessColor
+ProcessColor
+
+* Return type: `number`
+
+| Parameter | Type
+| - | - |
+| color | any
+

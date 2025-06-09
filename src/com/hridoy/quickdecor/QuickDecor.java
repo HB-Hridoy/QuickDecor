@@ -17,7 +17,7 @@ import java.util.HashMap;
 
 // This annotation will not be present in the built extension
 // When you use the optimize, proguard or the deannonate feature.
-@DesignerComponent(version = 6, versionName = "1.0", description = "Developed by Hridoy by Fast.", iconName = "icon.png")
+@DesignerComponent(version = 8, versionName = "1.0", description = "Developed by Hridoy by Fast.", iconName = "icon.png")
 public class QuickDecor extends AndroidNonvisibleComponent {
 
   private static final HashMap<String, GradientBackgroundTemplate> GRADIENT_BACKGROUND_TEMPLATES = new HashMap<>();
