@@ -1,5 +1,6 @@
 package com.hridoy.quickdecor;
 
+import android.content.Context;
 import android.graphics.Color;
 import android.graphics.drawable.GradientDrawable;
 import android.util.Log;
@@ -55,6 +56,7 @@ public class QuickDecor extends AndroidNonvisibleComponent {
 
   public QuickDecor(ComponentContainer container) {
     super(container.$form());
+      this.context = container.$context();
   }
 
   //----------------------------------------------------------------------
