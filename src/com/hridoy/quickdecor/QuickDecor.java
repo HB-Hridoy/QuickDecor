@@ -29,7 +29,6 @@ public class QuickDecor extends AndroidNonvisibleComponent {
   private final String TAG = "QuickDecor";
 
   private static final HashMap<String, GradientBackgroundTemplate> GRADIENT_BACKGROUND_TEMPLATES = new HashMap<>();
-  private boolean isDebugMode = true;
   private static final Map<Integer, GradientDrawable.Orientation> ORIENTATION_MAP = new HashMap<>();
   static {
     ORIENTATION_MAP.put(10, GradientDrawable.Orientation.LEFT_RIGHT);
@@ -70,12 +69,24 @@ public class QuickDecor extends AndroidNonvisibleComponent {
 
   @SimpleEvent(description = "Triggered when a debug message is generated. This event is only fired if debugging is enabled.")
   public void Debug(String source, String message) {
-    if (isDebugMode) {
+    if (LogDebug()) {
       EventDispatcher.dispatchEvent(this, "Debug", source, message);
-      Log.i(TAG, source + " : " + message);
+      Log.d(TAG, source + " : " + message);
     }
   }
 
+  @DesignerProperty(
+          editorType = PropertyTypeConstants.PROPERTY_TYPE_BOOLEAN,
+          defaultValue = "False"
+  )
+  @SimpleProperty(description = "")
+  public void LogDebug(boolean debug){
+    DEBUG_MODE = debug;
+  }
+  @SimpleProperty(description = "")
+  public boolean LogDebug(){
+    return DEBUG_MODE;
+  }
 
   //----------------------------------------------------------------------
   // Methods
