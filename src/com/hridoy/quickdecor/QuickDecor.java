@@ -75,6 +75,15 @@ public class QuickDecor extends AndroidNonvisibleComponent {
     }
   }
 
+  //----------------------------------------------------------------------
+  // Properties
+  //----------------------------------------------------------------------
+
+  @SimpleProperty(description = "Get display density")
+  public float Density() {
+    return this.context.getResources().getDisplayMetrics().density;
+  }
+
   @DesignerProperty(
           editorType = PropertyTypeConstants.PROPERTY_TYPE_BOOLEAN,
           defaultValue = "False"
@@ -105,10 +114,10 @@ public class QuickDecor extends AndroidNonvisibleComponent {
     Debug("SetPadding", "Parsed padding values: " + paddingValues.toString());
 
     try {
-      int top = paddingValues.get(0) * 3;
-      int left = paddingValues.get(1) * 3;
-      int bottom = paddingValues.get(2) * 3;
-      int right = paddingValues.get(3) * 3;
+      int top = dpToPx(paddingValues.get(0));
+      int left = dpToPx(paddingValues.get(1));
+      int bottom = dpToPx(paddingValues.get(2));
+      int right = dpToPx(paddingValues.get(3));
 
       Debug("SetPadding", "Computed: top=" + top + ", left=" + left + ", bottom=" + bottom + ", right=" + right);
       view.setPadding(left, top, right, bottom);
@@ -139,10 +148,10 @@ public class QuickDecor extends AndroidNonvisibleComponent {
     Debug("SetMargin", "Parsed margin values: " + marginValues.toString());
 
     try {
-      int top = marginValues.get(0) * 3;
-      int left = marginValues.get(1) * 3;
-      int bottom = marginValues.get(2) * 3;
-      int right = marginValues.get(3) * 3;
+      int top = dpToPx(marginValues.get(0));
+      int left = dpToPx(marginValues.get(1));
+      int bottom = dpToPx(marginValues.get(2));
+      int right = dpToPx(marginValues.get(3));
 
       Debug("SetMargin", "Computed: top=" + top + ", left=" + left + ", bottom=" + bottom + ", right=" + right);
 
@@ -259,7 +268,7 @@ public class QuickDecor extends AndroidNonvisibleComponent {
       LG_CornerRadius(cornerRadiusList, layoutGradient);
       Debug("GradientBackground", "Corner radius applied: " + cornerRadiusList.toString());
 
-      int scaledStrokeWidth = strokeWidth * 5;
+      int scaledStrokeWidth = dpToPx(strokeWidth);
       layoutGradient.setStroke(scaledStrokeWidth, strokeColor);
       Debug("GradientBackground", "Stroke set with width: " + scaledStrokeWidth + " and color: " + strokeColor);
 
@@ -566,10 +575,10 @@ public class QuickDecor extends AndroidNonvisibleComponent {
       return;
     }
 
-    float topLeft = cornersRadius.get(0) * 5f;
-    float topRight = cornersRadius.get(1) * 5f;
-    float bottomRight = cornersRadius.get(2) * 5f;
-    float bottomLeft = cornersRadius.get(3) * 5f;
+    float topLeft = dpToPx(cornersRadius.get(0));
+    float topRight = dpToPx(cornersRadius.get(1));
+    float bottomRight = dpToPx(cornersRadius.get(2));
+    float bottomLeft = dpToPx(cornersRadius.get(3));
 
     float[] radii = {
             topLeft, topLeft,         // top-left
