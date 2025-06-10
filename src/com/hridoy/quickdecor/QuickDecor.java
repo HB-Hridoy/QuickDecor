@@ -29,6 +29,29 @@ public class QuickDecor extends AndroidNonvisibleComponent {
 
   private static final HashMap<String, GradientBackgroundTemplate> GRADIENT_BACKGROUND_TEMPLATES = new HashMap<>();
   private boolean isDebugMode = true;
+  private static final Map<Integer, GradientDrawable.Orientation> ORIENTATION_MAP = new HashMap<>();
+  static {
+    ORIENTATION_MAP.put(10, GradientDrawable.Orientation.LEFT_RIGHT);
+    ORIENTATION_MAP.put(11, GradientDrawable.Orientation.RIGHT_LEFT);
+    ORIENTATION_MAP.put(12, GradientDrawable.Orientation.TOP_BOTTOM);
+    ORIENTATION_MAP.put(13, GradientDrawable.Orientation.BOTTOM_TOP);
+    ORIENTATION_MAP.put(14, GradientDrawable.Orientation.BL_TR);
+    ORIENTATION_MAP.put(15, GradientDrawable.Orientation.BR_TL);
+    ORIENTATION_MAP.put(16, GradientDrawable.Orientation.TL_BR);
+    ORIENTATION_MAP.put(17, GradientDrawable.Orientation.TR_BL);
+  }
+
+  private static final Map<Integer, Integer> STROKE_TYPE_MAP = new HashMap<>();
+  static {
+    STROKE_TYPE_MAP.put(0, CustomBackgroundDrawable.STROKE_TYPE_SOLID);
+    STROKE_TYPE_MAP.put(1, CustomBackgroundDrawable.STROKE_TYPE_DASHED);
+    STROKE_TYPE_MAP.put(2, CustomBackgroundDrawable.STROKE_TYPE_DOTTED);
+    STROKE_TYPE_MAP.put(3, CustomBackgroundDrawable.STROKE_TYPE_DASH_DOT);
+    STROKE_TYPE_MAP.put(4, CustomBackgroundDrawable.STROKE_TYPE_CUSTOM);
+  }
+  private boolean DEBUG_MODE = true;
+
+  private Context context;
 
   public QuickDecor(ComponentContainer container) {
     super(container.$form());
