@@ -13,6 +13,10 @@ import androidx.annotation.ColorInt;
 import androidx.annotation.FloatRange;
 import androidx.annotation.IntRange;
 
+import java.util.Arrays;
+
+import static com.google.appinventor.components.runtime.Component.COLOR_WHITE;
+
 @TargetApi(Build.VERSION_CODES.LOLLIPOP)
 public class CustomBackgroundDrawable extends Drawable {
     private static final String TAG = "CustomBackgroundDrawable";
@@ -21,7 +25,7 @@ public class CustomBackgroundDrawable extends Drawable {
     private static final int MIN_COLORS = 2;
     private static final int MAX_COLORS = 10;
     private static final float MIN_CORNER_SIZE = 0f;
-    private static final float MAX_CORNER_SIZE = 1000f;
+    private static final float MAX_CORNER_SIZE = 3000f;
     private static final float MIN_STROKE_WIDTH = 0f;
     private static final float MAX_STROKE_WIDTH = 100f;
     private static final float DEFAULT_DASH_LENGTH = 10f;
@@ -115,13 +119,21 @@ public class CustomBackgroundDrawable extends Drawable {
         }
 
         public Builder setColors(int... colors) {
-            if (colors == null || colors.length < MIN_COLORS) {
-                throw new IllegalArgumentException("At least " + MIN_COLORS + " colors required");
+            if (colors == null || colors.length == 0) {
+                // If no colors, fill with two white colors
+                this.gradientColors = new int[]{COLOR_WHITE, COLOR_WHITE};
+            } else if (colors.length < MIN_COLORS) {
+                // If only one color, duplicate it to meet minimum
+                this.gradientColors = new int[MIN_COLORS];
+                this.gradientColors[0] = colors[0];
+                this.gradientColors[1] = colors[0];
+            } else if (colors.length > MAX_COLORS) {
+                // Truncate to max colors
+                this.gradientColors = Arrays.copyOf(colors, MAX_COLORS);
+            } else {
+                // Valid length, clone array
+                this.gradientColors = colors.clone();
             }
-            if (colors.length > MAX_COLORS) {
-                throw new IllegalArgumentException("Maximum " + MAX_COLORS + " colors allowed");
-            }
-            this.gradientColors = colors.clone();
             return this;
         }
 
@@ -244,6 +256,7 @@ public class CustomBackgroundDrawable extends Drawable {
         private float validateCornerSize(float size) {
             return Math.max(MIN_CORNER_SIZE, Math.min(MAX_CORNER_SIZE, size));
         }
+
     }
 
     // Private constructor for builder
@@ -253,37 +266,6 @@ public class CustomBackgroundDrawable extends Drawable {
         this.orientation = builder.orientation;
         System.arraycopy(builder.cornerSizes, 0, this.cornerSizes, 0, 4);
         System.arraycopy(builder.isCutCorner, 0, this.isCutCorner, 0, 4);
-
-        initializePaints();
-        validateConfiguration();
-    }
-
-    // Legacy constructor for backward compatibility
-    public CustomBackgroundDrawable(@NonNull int[] gradientColors,
-                                    @NonNull GradientDrawable.Orientation orientation,
-                                    @NonNull float[] cornerSizes,
-                                    @NonNull boolean[] isCutCorner) {
-        if (gradientColors == null || gradientColors.length < MIN_COLORS) {
-            throw new IllegalArgumentException("Gradient must have at least " + MIN_COLORS + " colors.");
-        }
-        if (gradientColors.length > MAX_COLORS) {
-            throw new IllegalArgumentException("Maximum " + MAX_COLORS + " colors allowed.");
-        }
-        if (cornerSizes == null || cornerSizes.length != 4) {
-            throw new IllegalArgumentException("Corner sizes must be an array of 4 elements.");
-        }
-        if (isCutCorner == null || isCutCorner.length != 4) {
-            throw new IllegalArgumentException("Cut corner flags must be an array of 4 elements.");
-        }
-
-        this.gradientColors = gradientColors.clone();
-        this.orientation = orientation;
-
-        // Validate and copy corner sizes
-        for (int i = 0; i < 4; i++) {
-            this.cornerSizes[i] = Math.max(MIN_CORNER_SIZE, Math.min(MAX_CORNER_SIZE, cornerSizes[i]));
-        }
-        System.arraycopy(isCutCorner, 0, this.isCutCorner, 0, 4);
 
         initializePaints();
         validateConfiguration();
