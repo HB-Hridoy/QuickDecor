@@ -559,6 +559,56 @@ public class QuickDecor extends AndroidNonvisibleComponent {
     return finalCut;
   }
 
+  public int[] parseGradientColors(Object colors) {
+    if (colors instanceof YailList) {
+      YailList yailList = (YailList) colors;
+      if (yailList.isEmpty()) {
+        return new int[] {
+                FormatColor("#00000000"),
+                FormatColor("#00000000")
+        };
+      }
+      if (yailList.size() == 1) {
+        int color = FormatColor(yailList.get(1)); // YailList is 1-indexed!
+        return new int[] { color, color };
+      }
+      // For 2+ items, process all items
+      int[] result = new int[yailList.size()];
+      for (int i = 1; i <= yailList.size(); i++) { // YailList starts at index 1
+        result[i-1] = FormatColor(yailList.get(i));
+      }
+      return result;
+    } else if (colors instanceof List) {
+      List<?> rawList = (List<?>) colors;
+      if (rawList.isEmpty()) {
+        return new int[] {
+                FormatColor("#00000000"),
+                FormatColor("#00000000")
+        };
+      }
+      if (rawList.size() == 1) {
+        int color = FormatColor(rawList.get(0));
+        return new int[] { color, color };
+      }
+      // For 2+ items, process all items
+      int[] result = new int[rawList.size()];
+      for (int i = 0; i < rawList.size(); i++) {
+        result[i] = FormatColor(rawList.get(i));
+      }
+      return result;
+    } else {
+      // Not a list — treat as a single color input
+      if (colors == null || colors.toString().trim().isEmpty()) {
+        return new int[] {
+                FormatColor("#00000000"),
+                FormatColor("#00000000")
+        };
+      }
+      int color = FormatColor(colors);
+      return new int[] { color, color };
+    }
+  }
+
   private int parseHexColor(String hex) {
     Debug("parseHexColor", "Input hex string: " + hex);
     hex = hex.replace("#", "").toUpperCase(Locale.ROOT);
