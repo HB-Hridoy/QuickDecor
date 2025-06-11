@@ -1,13 +1,27 @@
-# Repackages optimized classes into com.hridoy.quickdecor.repacked package in resulting
-# AIX. Repackaging is necessary to avoid clashes with the other extensions that
-# might be using same libraries as you.
+# Repackage and simplify
 -repackageclasses com.hridoy.quickdecor.repacked
+-flattenpackagehierarchy
 
--android
--optimizationpasses 4
+# Show detailed output
+-verbose
+
+# Optimization settings
+-optimizationpasses 10
 -allowaccessmodification
 -mergeinterfacesaggressively
--overloadaggressively
--useuniqueclassmembernames
--dontskipnonpubliclibraryclasses
--dontskipnonpubliclibraryclassmember
+-dontpreverify
+
+# Keep main extension class and all public methods except Debug
+-keep public class com.hridoy.quickdecor.QuickDecor {
+    public *;
+}
+
+# Keep required Kawa/AI2 runtime classes
+-keeppackagenames gnu.kawa**
+-keeppackagenames gnu.expr**
+
+# Optional: Keep OptionList interfaces if used in enums like Orientation
+-keep interface com.google.appinventor.components.common.OptionList
+-keep class com.google.appinventor.components.common.OptionList {
+    *;
+}
