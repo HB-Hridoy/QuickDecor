@@ -494,6 +494,71 @@ public class QuickDecor extends AndroidNonvisibleComponent {
     }
   }
 
+  private boolean[] parseCutCornerFlags(String input) {
+    if (input == null || input.trim().isEmpty()) {
+      ErrorOccurred("parseCutCorners", "Error: Input string is empty.");
+      Debug("parseCutCorners", "Input string is empty.");
+      return new boolean[] { false, false, false, false };
+    }
+
+    String[] parts = input.split(",");
+    List<Boolean> result = new ArrayList<>();
+
+    for (int i = 0; i < Math.min(4, parts.length); i++) {
+      String val = parts[i].trim().toLowerCase();
+      boolean parsed;
+      switch (val) {
+        case "t":
+        case "true":
+        case "1":
+          parsed = true;
+          break;
+        case "f":
+        case "false":
+        case "0":
+          parsed = false;
+          break;
+        default:
+          ErrorOccurred("parseCutCorners", "Invalid value '" + val + "' at index " + i + ". Using false.");
+          Debug("parseCutCorners", "Invalid boolean at index " + i + ": '" + val + "', defaulting to false");
+          parsed = false;
+      }
+      result.add(parsed);
+    }
+
+    // Expand result to boolean[4]
+    boolean[] finalCut = new boolean[4];
+    switch (result.size()) {
+      case 1:
+        Arrays.fill(finalCut, result.get(0));
+        break;
+      case 2:
+        finalCut[0] = result.get(0);
+        finalCut[1] = result.get(1);
+        finalCut[2] = result.get(0);
+        finalCut[3] = result.get(1);
+        break;
+      case 3:
+        finalCut[0] = result.get(0);
+        finalCut[1] = result.get(1);
+        finalCut[2] = result.get(2);
+        finalCut[3] = false;
+        break;
+      case 4:
+        for (int i = 0; i < 4; i++) {
+          finalCut[i] = result.get(i);
+        }
+        break;
+      default:
+        ErrorOccurred("parseCutCorners", "No valid values found. Defaulting to all false.");
+        Debug("parseCutCorners", "Returning all-false cut corners.");
+        Arrays.fill(finalCut, false);
+    }
+
+    Debug("parseCutCorners", "Parsed cut corners: " + Arrays.toString(finalCut));
+    return finalCut;
+  }
+
   private int parseHexColor(String hex) {
     Debug("parseHexColor", "Input hex string: " + hex);
     hex = hex.replace("#", "").toUpperCase(Locale.ROOT);
