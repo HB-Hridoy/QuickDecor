@@ -1,4 +1,3 @@
-
 package com.hridoy.quickdecor;
 
 import android.annotation.TargetApi;
@@ -6,160 +5,77 @@ import android.graphics.*;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Build;
-import android.util.Log;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.ColorInt;
 import androidx.annotation.FloatRange;
-import androidx.annotation.IntRange;
-
+import androidx.annotation.NonNull;
 import java.util.Arrays;
-
-import static com.google.appinventor.components.runtime.Component.COLOR_WHITE;
 
 @TargetApi(Build.VERSION_CODES.LOLLIPOP)
 public class CustomBackgroundDrawable extends Drawable {
-    private static final String TAG = "CustomBackgroundDrawable";
-
-    // Constants
-    private static final int MIN_COLORS = 2;
-    private static final int MAX_COLORS = 10;
-    private static final float MIN_CORNER_SIZE = 0f;
-    private static final float MAX_CORNER_SIZE = 3000f;
-    private static final float MIN_STROKE_WIDTH = 0f;
-    private static final float MAX_STROKE_WIDTH = 100f;
-    private static final float DEFAULT_DASH_LENGTH = 10f;
-    private static final float DEFAULT_GAP_LENGTH = 5f;
-    private static final float DEFAULT_DOT_LENGTH = 2f;
     public static final int GRADIENT_TYPE_LINEAR = 0;
     public static final int GRADIENT_TYPE_RADIAL = 1;
     public static final int GRADIENT_TYPE_SWEEP = 2;
 
-    // Paint objects
-    private final Paint fillPaint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.DITHER_FLAG);
-    private final Paint strokePaint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.DITHER_FLAG);
-    private final Paint shadowPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-
-    // Path objects with reuse for performance
-    private final Path fillPath = new Path();
-    private final Path strokePath = new Path();
-    private final Path shadowPath = new Path();
-
-    // Bounds and rectangles
-    private final RectF boundsRect = new RectF();
-    private final RectF strokeBoundsRect = new RectF();
-    private final RectF shadowBoundsRect = new RectF();
-    private final RectF tempRect = new RectF();
-
-    // Core properties
-    private final float[] cornerSizes = new float[4]; // top-left, top-right, bottom-right, bottom-left
-    private final boolean[] isCutCorner = new boolean[4]; // same order
-    private int[] gradientColors;
-    private float[] gradientPositions;
-    private GradientDrawable.Orientation orientation;
-    private int shape;
-    private int gradientType = GRADIENT_TYPE_LINEAR;
-
-
-    // Stroke properties
-    private int strokeColor = Color.TRANSPARENT;
-    private float strokeWidth = 0f;
-    private DashPathEffect dashPathEffect = null;
-    private Paint.Cap strokeCap = Paint.Cap.ROUND;
-    private Paint.Join strokeJoin = Paint.Join.ROUND;
-    private float strokeMiterLimit = 4f;
-
-    // Shadow properties
-    private boolean shadowEnabled = false;
-    private int shadowColor = Color.BLACK;
-    private float shadowRadius = 0f;
-    private float shadowDx = 0f;
-    private float shadowDy = 0f;
-
-    // Stroke types
     public static final int STROKE_TYPE_SOLID = 0;
     public static final int STROKE_TYPE_DASHED = 1;
     public static final int STROKE_TYPE_DOTTED = 2;
     public static final int STROKE_TYPE_DASH_DOT = 3;
     public static final int STROKE_TYPE_CUSTOM = 4;
 
-    private int strokeType = STROKE_TYPE_SOLID;
-    private float dashLength = DEFAULT_DASH_LENGTH;
-    private float gapLength = DEFAULT_GAP_LENGTH;
-    private float dotLength = DEFAULT_DOT_LENGTH;
-    private float[] customDashPattern = null;
+    private final Paint fillPaint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.DITHER_FLAG);
+    private final Paint strokePaint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.DITHER_FLAG);
+    private final Path fillPath = new Path();
+    private final Path strokePath = new Path();
 
-    // Performance optimization flags
-    private boolean needsPathUpdate = true;
-    private boolean needsShaderUpdate = true;
-    private Rect lastBounds = new Rect();
-    private int currentAlpha = 255;
+    private RectF boundsRect = new RectF();
+    private RectF strokeBoundsRect = new RectF();
 
-    // Builder pattern for easier construction
+    private int[] gradientColors;
+    private GradientDrawable.Orientation orientation;
+    private int gradientType;
+    private int shape;
+
+    private float[] cornerSizes = new float[4];
+    private boolean[] isCutCorner = new boolean[4];
+
+    private int[] strokeGradientColors;
+    private GradientDrawable.Orientation strokeOrientation;
+    private int strokeGradientType;
+    private float strokeWidth;
+    private int strokeType;
+    private DashPathEffect dashPathEffect;
+
     public static class Builder {
         private int[] gradientColors;
-        private int gradientType = GRADIENT_TYPE_LINEAR;
-        private float[] gradientPositions;
         private GradientDrawable.Orientation orientation = GradientDrawable.Orientation.LEFT_RIGHT;
+        private int gradientType = GRADIENT_TYPE_LINEAR;
         private int shape = GradientDrawable.RECTANGLE;
         private float[] cornerSizes = new float[4];
         private boolean[] isCutCorner = new boolean[4];
 
-        private int strokeColor = Color.TRANSPARENT;
+        private int[] strokeGradientColors;
+        private GradientDrawable.Orientation strokeOrientation = GradientDrawable.Orientation.LEFT_RIGHT;
+        private int strokeGradientType = GRADIENT_TYPE_LINEAR;
         private float strokeWidth = 0f;
         private int strokeType = STROKE_TYPE_SOLID;
-        private float dashLength = DEFAULT_DASH_LENGTH;
-        private float gapLength = DEFAULT_GAP_LENGTH;
-        private float dotLength = DEFAULT_DOT_LENGTH;
-        private float[] customDashPattern = null;
-        private Paint.Cap strokeCap = Paint.Cap.ROUND;
-        private Paint.Join strokeJoin = Paint.Join.ROUND;
-        private float strokeMiterLimit = 4f;
-
-        private boolean shadowEnabled = false;
-        private int shadowColor = Color.BLACK;
-        private float shadowRadius = 0f;
-        private float shadowDx = 0f;
-        private float shadowDy = 0f;
-
-        public Builder() {
-
-        }
+        private float dashLength = 10f;
+        private float gapLength = 5f;
 
         public Builder setColors(int... colors) {
-            if (colors == null || colors.length == 0) {
-                // If no colors, fill with two white colors
-                this.gradientColors = new int[]{COLOR_WHITE, COLOR_WHITE};
-            } else if (colors.length < MIN_COLORS) {
-                // If only one color, duplicate it to meet minimum
-                this.gradientColors = new int[MIN_COLORS];
-                this.gradientColors[0] = colors[0];
-                this.gradientColors[1] = colors[0];
-            } else if (colors.length > MAX_COLORS) {
-                // Truncate to max colors
-                this.gradientColors = Arrays.copyOf(colors, MAX_COLORS);
-            } else {
-                // Valid length, clone array
-                this.gradientColors = colors.clone();
+            if (colors == null || colors.length < 2) {
+                throw new IllegalArgumentException("Gradient requires at least 2 colors");
             }
+            this.gradientColors = colors;
             return this;
         }
 
-        public Builder setGradientType(int gradientType) {
-            this.gradientType = gradientType;
-            return this;
-        }
-
-        public Builder setGradientPositions(float... positions) {
-            if (positions != null && positions.length != gradientColors.length) {
-                throw new IllegalArgumentException("Positions array must match colors array length");
-            }
-            this.gradientPositions = positions != null ? positions.clone() : null;
-            return this;
-        }
-
-        public Builder setOrientation(@NonNull GradientDrawable.Orientation orientation) {
+        public Builder setOrientation(GradientDrawable.Orientation orientation) {
             this.orientation = orientation;
+            return this;
+        }
+
+        public Builder setGradientType(int type) {
+            this.gradientType = type;
             return this;
         }
 
@@ -168,917 +84,216 @@ public class CustomBackgroundDrawable extends Drawable {
             return this;
         }
 
-        public int getShape() {
-            return shape;
-        }
-
         public Builder setCornerSizes(float topLeft, float topRight, float bottomRight, float bottomLeft) {
-            this.cornerSizes[0] = validateCornerSize(topLeft);
-            this.cornerSizes[1] = validateCornerSize(topRight);
-            this.cornerSizes[2] = validateCornerSize(bottomRight);
-            this.cornerSizes[3] = validateCornerSize(bottomLeft);
+            this.cornerSizes = new float[]{topLeft, topRight, bottomRight, bottomLeft};
             return this;
         }
 
-        public Builder setCornerTypes(boolean topLeftCut, boolean topRightCut, boolean bottomRightCut, boolean bottomLeftCut) {
-            this.isCutCorner[0] = topLeftCut;
-            this.isCutCorner[1] = topRightCut;
-            this.isCutCorner[2] = bottomRightCut;
-            this.isCutCorner[3] = bottomLeftCut;
+        public Builder setCornerTypes(boolean topLeft, boolean topRight, boolean bottomRight, boolean bottomLeft) {
+            this.isCutCorner = new boolean[]{topLeft, topRight, bottomRight, bottomLeft};
             return this;
         }
 
-        public Builder setStroke(@ColorInt int color, float width) {
-            this.strokeColor = color;
-            this.strokeWidth = Math.max(MIN_STROKE_WIDTH, Math.min(MAX_STROKE_WIDTH, width));
-            return this;
-        }
-
-        public Builder setStrokeType(int strokeType) {
-            this.strokeType = strokeType;
-            return this;
-        }
-
-        public Builder setStrokeType(int strokeType, float dashLength, float gapLength) {
-            this.strokeType = strokeType;
-            this.dashLength = Math.max(1f, dashLength);
-            this.gapLength = Math.max(1f, gapLength);
-            return this;
-        }
-
-        public Builder setStrokeType(int strokeType, float dashLength, float gapLength, float dotLength) {
-            this.strokeType = strokeType;
-            this.dashLength = Math.max(1f, dashLength);
-            this.gapLength = Math.max(1f, gapLength);
-            this.dotLength = Math.max(1f, dotLength);
-            return this;
-        }
-
-        public Builder setCustomStrokePattern(@NonNull float[] pattern) {
-            if (pattern != null && pattern.length > 0 && pattern.length % 2 == 0) {
-                this.customDashPattern = pattern.clone();
-                this.strokeType = STROKE_TYPE_CUSTOM;
+        public Builder setStroke(@NonNull int[] colors, float width) {
+            if (colors.length < 2) {
+                throw new IllegalArgumentException("Stroke gradient requires at least 2 colors");
             }
+            this.strokeGradientColors = colors;
+            this.strokeWidth = width;
             return this;
         }
 
-        public Builder setStrokeCap(@NonNull Paint.Cap cap) {
-            this.strokeCap = cap != null ? cap : Paint.Cap.ROUND;
+        public Builder setStrokeType(int type, float dash, float gap) {
+            this.strokeType = type;
+            this.dashLength = dash;
+            this.gapLength = gap;
             return this;
         }
 
-        public Builder setStrokeJoin(@NonNull Paint.Join join) {
-            this.strokeJoin = join != null ? join : Paint.Join.ROUND;
+        public Builder setStrokeGradientOrientation(GradientDrawable.Orientation orientation) {
+            this.strokeOrientation = orientation;
             return this;
         }
 
-        public Builder setStrokeMiterLimit(float miterLimit) {
-            this.strokeMiterLimit = Math.max(1f, miterLimit);
-            return this;
-        }
-
-        public Builder setShadow(@ColorInt int color, float radius, float dx, float dy) {
-            this.shadowEnabled = radius > 0;
-            this.shadowColor = color;
-            this.shadowRadius = Math.max(0f, radius);
-            this.shadowDx = dx;
-            this.shadowDy = dy;
-            return this;
-        }
-
-        public Builder clearShadow() {
-            this.shadowEnabled = false;
-            this.shadowRadius = 0f;
+        public Builder setStrokeGradientType(int type) {
+            this.strokeGradientType = type;
             return this;
         }
 
         public CustomBackgroundDrawable build() {
-            CustomBackgroundDrawable drawable = new CustomBackgroundDrawable(this);
-
-            // Apply stroke settings
-            if (strokeWidth > 0) {
-                drawable.setStroke(strokeColor, strokeWidth);
-                drawable.setStrokeType(strokeType, dashLength, gapLength, dotLength);
-                if (customDashPattern != null) {
-                    drawable.setCustomStrokePattern(customDashPattern);
-                }
-                drawable.setStrokeCap(strokeCap);
-                drawable.setStrokeJoin(strokeJoin);
-                drawable.setStrokeMiterLimit(strokeMiterLimit);
-            }
-
-            // Apply shadow settings
-            if (shadowEnabled) {
-                drawable.setShadow(shadowColor, shadowRadius, shadowDx, shadowDy);
-            }
-
-            return drawable;
+            return new CustomBackgroundDrawable(this);
         }
-
-        private float validateCornerSize(float size) {
-            return Math.max(MIN_CORNER_SIZE, Math.min(MAX_CORNER_SIZE, size));
-        }
-
     }
 
-    // Private constructor for builder
     private CustomBackgroundDrawable(Builder builder) {
-        this.gradientColors = builder.gradientColors.clone();
-        this.gradientPositions = builder.gradientPositions != null ? builder.gradientPositions.clone() : null;
+        this.gradientColors = builder.gradientColors;
         this.orientation = builder.orientation;
+        this.gradientType = builder.gradientType;
         this.shape = builder.shape;
-        this.gradientType = builder.gradientType; // Add this line
-        System.arraycopy(builder.cornerSizes, 0, this.cornerSizes, 0, 4);
-        System.arraycopy(builder.isCutCorner, 0, this.isCutCorner, 0, 4);
+        this.cornerSizes = builder.cornerSizes;
+        this.isCutCorner = builder.isCutCorner;
+        this.strokeGradientColors = builder.strokeGradientColors;
+        this.strokeOrientation = builder.strokeOrientation;
+        this.strokeGradientType = builder.strokeGradientType;
+        this.strokeWidth = builder.strokeWidth;
+        this.strokeType = builder.strokeType;
+        updateStrokeEffect(builder.dashLength, builder.gapLength);
 
-        initializePaints();
-        validateConfiguration();
-    }
-
-    private void initializePaints() {
-        // Initialize fill paint
         fillPaint.setStyle(Paint.Style.FILL);
-
-        // Initialize stroke paint
         strokePaint.setStyle(Paint.Style.STROKE);
-        strokePaint.setStrokeCap(strokeCap);
-        strokePaint.setStrokeJoin(strokeJoin);
-        strokePaint.setStrokeMiter(strokeMiterLimit);
-
-        // Initialize shadow paint
-        shadowPaint.setStyle(Paint.Style.FILL);
+        strokePaint.setStrokeWidth(strokeWidth);
     }
 
-    private void validateConfiguration() {
-        try {
-            // Validate gradient positions if provided
-            if (gradientPositions != null) {
-                if (gradientPositions.length != gradientColors.length) {
-                    Log.w(TAG, "Gradient positions length doesn't match colors length, ignoring positions");
-                    gradientPositions = null;
-                } else {
-                    // Ensure positions are in ascending order and within [0,1]
-                    for (int i = 0; i < gradientPositions.length; i++) {
-                        gradientPositions[i] = Math.max(0f, Math.min(1f, gradientPositions[i]));
-                        if (i > 0 && gradientPositions[i] < gradientPositions[i-1]) {
-                            Log.w(TAG, "Gradient positions not in ascending order, auto-correcting");
-                            gradientPositions[i] = gradientPositions[i-1];
-                        }
-                    }
-                }
-            }
-        } catch (Exception e) {
-            Log.e(TAG, "Error validating configuration", e);
+    private void updateStrokeEffect(float dash, float gap) {
+        switch (strokeType) {
+            case STROKE_TYPE_DASHED:
+                dashPathEffect = new DashPathEffect(new float[]{dash, gap}, 0);
+                break;
+            case STROKE_TYPE_DOTTED:
+                dashPathEffect = new DashPathEffect(new float[]{2f, gap}, 0);
+                break;
+            case STROKE_TYPE_DASH_DOT:
+                dashPathEffect = new DashPathEffect(new float[]{dash, gap, 2f, gap}, 0);
+                break;
+            default:
+                dashPathEffect = null;
         }
-    }
-
-    public void setGradientType(int gradientType) {
-        if (gradientType < GRADIENT_TYPE_LINEAR || gradientType > GRADIENT_TYPE_SWEEP) {
-            Log.w(TAG, "Invalid gradient type: " + gradientType + ", using LINEAR");
-            gradientType = GRADIENT_TYPE_LINEAR;
-        }
-
-        if (this.gradientType != gradientType) {
-            this.gradientType = gradientType;
-            needsShaderUpdate = true;
-            invalidateSelf();
-        }
-    }
-
-    public int getGradientType() {
-        return gradientType;
-    }
-
-    // Enhanced stroke methods
-    public void setStroke(@ColorInt int color, @FloatRange(from = 0f, to = MAX_STROKE_WIDTH) float width) {
-        if (width < MIN_STROKE_WIDTH || width > MAX_STROKE_WIDTH) {
-            Log.w(TAG, "Stroke width " + width + " is out of valid range [" + MIN_STROKE_WIDTH + ", " + MAX_STROKE_WIDTH + "]");
-            width = Math.max(MIN_STROKE_WIDTH, Math.min(MAX_STROKE_WIDTH, width));
-        }
-
-        this.strokeColor = color;
-        this.strokeWidth = width;
-        strokePaint.setColor(color);
-        strokePaint.setStrokeWidth(width);
-        needsPathUpdate = true;
-        invalidateSelf();
-    }
-
-    public void setStrokeType(int strokeType) {
-        if (strokeType < STROKE_TYPE_SOLID || strokeType > STROKE_TYPE_CUSTOM) {
-            Log.w(TAG, "Invalid stroke type: " + strokeType + ", using SOLID");
-            strokeType = STROKE_TYPE_SOLID;
-        }
-        this.strokeType = strokeType;
-        updateStrokeEffect();
-        invalidateSelf();
-    }
-
-    public void setStrokeType(int strokeType, float dashLength, float gapLength) {
-        setStrokeType(strokeType);
-        this.dashLength = Math.max(1f, dashLength);
-        this.gapLength = Math.max(1f, gapLength);
-        updateStrokeEffect();
-        invalidateSelf();
-    }
-
-    public void setStrokeType(int strokeType, float dashLength, float gapLength, float dotLength) {
-        setStrokeType(strokeType, dashLength, gapLength);
-        this.dotLength = Math.max(1f, dotLength);
-        updateStrokeEffect();
-        invalidateSelf();
-    }
-
-    public void setCustomStrokePattern(@NonNull float[] pattern) {
-        if (pattern == null || pattern.length == 0 || pattern.length % 2 != 0) {
-            Log.w(TAG, "Invalid custom stroke pattern, using solid stroke");
-            setStrokeType(STROKE_TYPE_SOLID);
-            return;
-        }
-
-        // Validate pattern values
-        for (int i = 0; i < pattern.length; i++) {
-            if (pattern[i] <= 0) {
-                Log.w(TAG, "Invalid pattern value at index " + i + ", using default");
-                pattern[i] = i % 2 == 0 ? DEFAULT_DASH_LENGTH : DEFAULT_GAP_LENGTH;
-            }
-        }
-
-        this.customDashPattern = pattern.clone();
-        this.strokeType = STROKE_TYPE_CUSTOM;
-        updateStrokeEffect();
-        invalidateSelf();
-    }
-
-    public void setStrokeCap(@NonNull Paint.Cap cap) {
-        this.strokeCap = cap != null ? cap : Paint.Cap.ROUND;
-        strokePaint.setStrokeCap(this.strokeCap);
-        invalidateSelf();
-    }
-
-    public void setStrokeJoin(@NonNull Paint.Join join) {
-        this.strokeJoin = join != null ? join : Paint.Join.ROUND;
-        strokePaint.setStrokeJoin(this.strokeJoin);
-        invalidateSelf();
-    }
-
-    public void setStrokeMiterLimit(@FloatRange(from = 1f) float miterLimit) {
-        this.strokeMiterLimit = Math.max(1f, miterLimit);
-        strokePaint.setStrokeMiter(this.strokeMiterLimit);
-        invalidateSelf();
-    }
-
-    // Shadow methods
-    public void setShadow(@ColorInt int color, float radius, float dx, float dy) {
-        this.shadowEnabled = radius > 0;
-        this.shadowColor = color;
-        this.shadowRadius = Math.max(0f, radius);
-        this.shadowDx = dx;
-        this.shadowDy = dy;
-
-        if (shadowEnabled) {
-            shadowPaint.setColor(shadowColor);
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
-                shadowPaint.setShadowLayer(shadowRadius, shadowDx, shadowDy, shadowColor);
-            }
-        }
-
-        needsPathUpdate = true;
-        invalidateSelf();
-    }
-
-    public void clearShadow() {
-        setShadow(Color.TRANSPARENT, 0f, 0f, 0f);
-    }
-
-    // Gradient methods
-    public void updateGradientColors(@ColorInt int... colors) {
-        if (colors == null || colors.length < MIN_COLORS) {
-            Log.w(TAG, "Invalid gradient colors, keeping current");
-            return;
-        }
-        if (colors.length > MAX_COLORS) {
-            Log.w(TAG, "Too many gradient colors, truncating to " + MAX_COLORS);
-            int[] truncated = new int[MAX_COLORS];
-            System.arraycopy(colors, 0, truncated, 0, MAX_COLORS);
-            colors = truncated;
-        }
-
-        this.gradientColors = colors.clone();
-        this.gradientPositions = null; // Reset positions when colors change
-        needsShaderUpdate = true;
-        invalidateSelf();
-    }
-
-    public void setGradientPositions(@NonNull float... positions) {
-        if (positions == null || positions.length != gradientColors.length) {
-            Log.w(TAG, "Gradient positions length doesn't match colors length");
-            return;
-        }
-
-        this.gradientPositions = positions.clone();
-        validateConfiguration();
-        needsShaderUpdate = true;
-        invalidateSelf();
-    }
-
-    // Corner methods
-    public void updateCornerSizes(float topLeft, float topRight, float bottomRight, float bottomLeft) {
-        this.cornerSizes[0] = Math.max(MIN_CORNER_SIZE, Math.min(MAX_CORNER_SIZE, topLeft));
-        this.cornerSizes[1] = Math.max(MIN_CORNER_SIZE, Math.min(MAX_CORNER_SIZE, topRight));
-        this.cornerSizes[2] = Math.max(MIN_CORNER_SIZE, Math.min(MAX_CORNER_SIZE, bottomRight));
-        this.cornerSizes[3] = Math.max(MIN_CORNER_SIZE, Math.min(MAX_CORNER_SIZE, bottomLeft));
-        needsPathUpdate = true;
-        invalidateSelf();
-    }
-
-    public void updateCornerTypes(boolean topLeftCut, boolean topRightCut, boolean bottomRightCut, boolean bottomLeftCut) {
-        this.isCutCorner[0] = topLeftCut;
-        this.isCutCorner[1] = topRightCut;
-        this.isCutCorner[2] = bottomRightCut;
-        this.isCutCorner[3] = bottomLeftCut;
-        needsPathUpdate = true;
-        invalidateSelf();
-    }
-
-    private void updateStrokeEffect() {
-        try {
-            switch (strokeType) {
-                case STROKE_TYPE_SOLID:
-                    dashPathEffect = null;
-                    break;
-                case STROKE_TYPE_DASHED:
-                    dashPathEffect = new DashPathEffect(new float[]{dashLength, gapLength}, 0);
-                    break;
-                case STROKE_TYPE_DOTTED:
-                    dashPathEffect = new DashPathEffect(new float[]{dotLength, gapLength}, 0);
-                    break;
-                case STROKE_TYPE_DASH_DOT:
-                    dashPathEffect = new DashPathEffect(new float[]{dashLength, gapLength, dotLength, gapLength}, 0);
-                    break;
-                case STROKE_TYPE_CUSTOM:
-                    if (customDashPattern != null) {
-                        dashPathEffect = new DashPathEffect(customDashPattern, 0);
-                    } else {
-                        dashPathEffect = null;
-                    }
-                    break;
-                default:
-                    dashPathEffect = null;
-                    break;
-            }
-            strokePaint.setPathEffect(dashPathEffect);
-        } catch (Exception e) {
-            Log.e(TAG, "Error updating stroke effect", e);
-            dashPathEffect = null;
-            strokePaint.setPathEffect(null);
-        }
+        strokePaint.setPathEffect(dashPathEffect);
     }
 
     @Override
     protected void onBoundsChange(Rect bounds) {
         super.onBoundsChange(bounds);
+        boundsRect.set(bounds);
+        float halfStroke = strokeWidth / 2f;
+        strokeBoundsRect.set(bounds.left + halfStroke, bounds.top + halfStroke, bounds.right - halfStroke, bounds.bottom - halfStroke);
 
-        // Performance optimization: only update if bounds actually changed
-        if (bounds.equals(lastBounds)) {
-            return;
-        }
-        lastBounds.set(bounds);
+        Shader fillShader = createShader(bounds, gradientColors, orientation, gradientType);
+        fillPaint.setShader(fillShader);
 
-        try {
-            boundsRect.set(bounds);
+        Shader strokeShader = createShader(bounds, strokeGradientColors, strokeOrientation, strokeGradientType);
+        strokePaint.setShader(strokeShader);
 
-            // Calculate stroke bounds
-            float halfStroke = strokeWidth / 2f;
-            strokeBoundsRect.set(
-                    bounds.left + halfStroke,
-                    bounds.top + halfStroke,
-                    bounds.right - halfStroke,
-                    bounds.bottom - halfStroke
-            );
-
-            // Calculate shadow bounds
-            if (shadowEnabled) {
-                shadowBoundsRect.set(
-                        bounds.left + shadowDx - shadowRadius,
-                        bounds.top + shadowDy - shadowRadius,
-                        bounds.right + shadowDx + shadowRadius,
-                        bounds.bottom + shadowDy + shadowRadius
-                );
-            }
-
-            // Update shader if needed
-            if (needsShaderUpdate || needsPathUpdate) {
-                updateShader(bounds);
-                needsShaderUpdate = false;
-            }
-
-            // Update paths
-            if (needsPathUpdate) {
-                buildAllPaths();
-                needsPathUpdate = false;
-            }
-        } catch (Exception e) {
-            Log.e(TAG, "Error in onBoundsChange", e);
-        }
-    }
-
-    private void updateShader(Rect bounds) {
-        try {
-            Shader shader = null;
-
-            switch (gradientType) {
-                case GRADIENT_TYPE_LINEAR:
-                    shader = new LinearGradient(
-                            getX0(bounds), getY0(bounds),
-                            getX1(bounds), getY1(bounds),
-                            gradientColors, gradientPositions, Shader.TileMode.CLAMP
-                    );
-                    break;
-
-                case GRADIENT_TYPE_RADIAL:
-                    float centerX = bounds.centerX();
-                    float centerY = bounds.centerY();
-                    float radius = Math.min(bounds.width(), bounds.height()) / 2f;
-
-                    // Ensure even color distribution
-                    if (gradientPositions == null || gradientPositions.length != gradientColors.length) {
-                        int colorCount = gradientColors.length;
-                        gradientPositions = new float[colorCount];
-                        for (int i = 0; i < colorCount; i++) {
-                            gradientPositions[i] = (float) i / (colorCount - 1);
-                        }
-                    }
-
-                    shader = new RadialGradient(
-                            centerX, centerY, radius,
-                            gradientColors, gradientPositions, Shader.TileMode.CLAMP
-                    );
-                    break;
-
-                case GRADIENT_TYPE_SWEEP:
-                    float sweepCenterX = bounds.centerX();
-                    float sweepCenterY = bounds.centerY();
-                    shader = new SweepGradient(
-                            sweepCenterX, sweepCenterY,
-                            gradientColors, gradientPositions
-                    );
-                    break;
-
-                default:
-                    // Default to linear
-                    shader = new LinearGradient(
-                            getX0(bounds), getY0(bounds),
-                            getX1(bounds), getY1(bounds),
-                            gradientColors, gradientPositions, Shader.TileMode.CLAMP
-                    );
-                    break;
-            }
-
-            fillPaint.setShader(shader);
-        } catch (Exception e) {
-            Log.e(TAG, "Error creating shader", e);
-            // Fallback to solid color
-            fillPaint.setShader(null);
-            fillPaint.setColor(gradientColors[0]);
-        }
-    }
-
-    private void buildAllPaths() {
-        try {
-            buildFillPath();
-            if (strokeWidth > 0) {
-                buildStrokePath();
-            }
-            if (shadowEnabled) {
-                buildShadowPath();
-            }
-        } catch (Exception e) {
-            Log.e(TAG, "Error building paths", e);
-        }
-    }
-
-    private void buildFillPath() {
-        fillPath.reset();
-        float w = boundsRect.width();
-        float h = boundsRect.height();
-
-        if (w <= 0 || h <= 0) {
-            return;
-        }
-
-        // Handle different shapes
-        switch (shape) {
-            case GradientDrawable.RECTANGLE:
-                buildRectanglePath(fillPath, boundsRect, cornerSizes, 0f);
-                break;
-
-            case GradientDrawable.OVAL:
-                buildOvalPath(fillPath, boundsRect, 0f);
-                break;
-
-            case GradientDrawable.LINE:
-                buildLinePath(fillPath, boundsRect);
-                break;
-
-            case GradientDrawable.RING:
-                buildRingPath(fillPath, boundsRect);
-                break;
-
-            default:
-                // Default to rectangle
-                buildRectanglePath(fillPath, boundsRect, cornerSizes, 0f);
-                break;
-        }
-    }
-
-    private void buildOvalPath(Path path, RectF bounds, float inset) {
-        RectF ovalBounds = new RectF(
-                bounds.left + inset,
-                bounds.top + inset,
-                bounds.right - inset,
-                bounds.bottom - inset
-        );
-        path.addOval(ovalBounds, Path.Direction.CW);
-    }
-
-    private void buildLinePath(Path path, RectF bounds) {
-        // For line shape, draw from center-left to center-right
-        float centerY = bounds.centerY();
-        path.moveTo(bounds.left, centerY);
-        path.lineTo(bounds.right, centerY);
-    }
-
-    private void buildRingPath(Path path, RectF bounds) {
-        // Simple ring implementation - you might want to add more parameters
-        float centerX = bounds.centerX();
-        float centerY = bounds.centerY();
-        float outerRadius = Math.min(bounds.width(), bounds.height()) / 2f;
-        float innerRadius = outerRadius * 0.6f; // 60% of outer radius
-
-        // Outer circle
-        path.addCircle(centerX, centerY, outerRadius, Path.Direction.CW);
-        // Inner circle (subtracted)
-        path.addCircle(centerX, centerY, innerRadius, Path.Direction.CCW);
-    }
-
-    private void buildRectanglePath(Path path, RectF bounds, float[] corners, float inset) {
-        // Your existing buildPath logic goes here
-        float left = bounds.left + inset;
-        float top = bounds.top + inset;
-        float right = bounds.right - inset;
-        float bottom = bounds.bottom - inset;
-        float w = right - left;
-        float h = bottom - top;
-
-        if (w <= 0 || h <= 0) {
-            return;
-        }
-
-        // Adjust corner sizes based on available space
-        float[] adjustedCorners = adjustCornerSizes(w, h, corners);
-
-        // Start from top-left
-        if (isCutCorner[0] && adjustedCorners[0] > 0) {
-            path.moveTo(left, top + adjustedCorners[0]);
-            path.lineTo(left + adjustedCorners[0], top);
-        } else if (adjustedCorners[0] > 0) {
-            path.moveTo(left, top + adjustedCorners[0]);
-            path.quadTo(left, top, left + adjustedCorners[0], top);
+        if (shape == GradientDrawable.OVAL) {
+            fillPath.reset();
+            strokePath.reset();
+            fillPath.addOval(boundsRect, Path.Direction.CW);
+            strokePath.addOval(strokeBoundsRect, Path.Direction.CW);
         } else {
-            path.moveTo(left, top);
-        }
-
-        // Top edge to top-right
-        if (isCutCorner[1] && adjustedCorners[1] > 0) {
-            path.lineTo(right - adjustedCorners[1], top);
-            path.lineTo(right, top + adjustedCorners[1]);
-        } else if (adjustedCorners[1] > 0) {
-            path.lineTo(right - adjustedCorners[1], top);
-            path.quadTo(right, top, right, top + adjustedCorners[1]);
-        } else {
-            path.lineTo(right, top);
-        }
-
-        // Right edge to bottom-right
-        if (isCutCorner[2] && adjustedCorners[2] > 0) {
-            path.lineTo(right, bottom - adjustedCorners[2]);
-            path.lineTo(right - adjustedCorners[2], bottom);
-        } else if (adjustedCorners[2] > 0) {
-            path.lineTo(right, bottom - adjustedCorners[2]);
-            path.quadTo(right, bottom, right - adjustedCorners[2], bottom);
-        } else {
-            path.lineTo(right, bottom);
-        }
-
-        // Bottom edge to bottom-left
-        if (isCutCorner[3] && adjustedCorners[3] > 0) {
-            path.lineTo(left + adjustedCorners[3], bottom);
-            path.lineTo(left, bottom - adjustedCorners[3]);
-        } else if (adjustedCorners[3] > 0) {
-            path.lineTo(left + adjustedCorners[3], bottom);
-            path.quadTo(left, bottom, left, bottom - adjustedCorners[3]);
-        } else {
-            path.lineTo(left, bottom);
-        }
-
-        path.close();
-    }
-
-    private void buildStrokePath() {
-        strokePath.reset();
-        float w = strokeBoundsRect.width();
-        float h = strokeBoundsRect.height();
-
-        if (w <= 0 || h <= 0) {
-            return;
-        }
-
-        switch (shape) {
-            case GradientDrawable.RECTANGLE:
-                float[] adjustedCorners = adjustCornerSizes(w, h, cornerSizes);
-                for (int i = 0; i < 4; i++) {
-                    adjustedCorners[i] = Math.max(0, adjustedCorners[i] - strokeWidth / 2f);
-                }
-                buildRectanglePath(strokePath, strokeBoundsRect, adjustedCorners, 0f);
-                break;
-
-            case GradientDrawable.OVAL:
-                RectF insetBounds = new RectF(
-                        boundsRect.left + strokeWidth / 2f,
-                        boundsRect.top + strokeWidth / 2f,
-                        boundsRect.right - strokeWidth / 2f,
-                        boundsRect.bottom - strokeWidth / 2f
-                );
-                buildOvalPath(strokePath, insetBounds, 0f);
-
-                break;
-
-            case GradientDrawable.LINE:
-                buildLinePath(strokePath, strokeBoundsRect);
-                break;
-
-            case GradientDrawable.RING:
-                buildRingPath(strokePath, strokeBoundsRect);
-                break;
-
-            default:
-                float[] defaultCorners = adjustCornerSizes(w, h, cornerSizes);
-                buildRectanglePath(strokePath, strokeBoundsRect, defaultCorners, 0f);
-                break;
+            buildCustomPath(fillPath, boundsRect, 0);
+            buildCustomPath(strokePath, strokeBoundsRect, strokeWidth / 2f);
         }
     }
 
-    private void buildShadowPath() {
-        shadowPath.reset();
-        if (!shadowEnabled) return;
+    private void buildCustomPath(Path path, RectF rect, float inset) {
+        path.reset();
+        float left = rect.left;
+        float top = rect.top;
+        float right = rect.right;
+        float bottom = rect.bottom;
 
-        // Shadow path is same as fill path but offset
-        float w = boundsRect.width();
-        float h = boundsRect.height();
-
-        if (w <= 0 || h <= 0) {
-            return;
-        }
-
-        tempRect.set(boundsRect);
-        tempRect.offset(shadowDx, shadowDy);
-
-        float[] adjustedCorners = adjustCornerSizes(w, h, cornerSizes);
-        buildPath(shadowPath, tempRect, adjustedCorners, shadowRadius);
-    }
-
-    private float[] adjustCornerSizes(float width, float height, float[] originalSizes) {
-        float[] adjusted = new float[4];
-        float maxCornerSize = Math.min(width, height) / 2f;
-
+        float[] cs = new float[4];
         for (int i = 0; i < 4; i++) {
-            adjusted[i] = Math.min(originalSizes[i], maxCornerSize);
+            cs[i] = Math.max(0, cornerSizes[i] - inset);
         }
+        boolean[] cc = isCutCorner;
 
-        return adjusted;
-    }
-
-    private void buildPath(Path path, RectF bounds, float[] corners, float inset) {
-        float left = bounds.left + inset;
-        float top = bounds.top + inset;
-        float right = bounds.right - inset;
-        float bottom = bounds.bottom - inset;
-        float w = right - left;
-        float h = bottom - top;
-
-        if (w <= 0 || h <= 0) {
-            return;
-        }
-
-        // Start from top-left
-        if (isCutCorner[0] && corners[0] > 0) {
-            // Cut corner
-            path.moveTo(left, top + corners[0]);
-            path.lineTo(left + corners[0], top);
-        } else if (corners[0] > 0) {
-            // Rounded corner
-            path.moveTo(left, top + corners[0]);
-            path.quadTo(left, top, left + corners[0], top);
+        if (cc[0] && cs[0] > 0) {
+            path.moveTo(left, top + cs[0]);
+            path.lineTo(left + cs[0], top);
+        } else if (cs[0] > 0) {
+            path.moveTo(left, top + cs[0]);
+            path.quadTo(left, top, left + cs[0], top);
         } else {
-            // No corner
             path.moveTo(left, top);
         }
 
-        // Top edge to top-right
-        if (isCutCorner[1] && corners[1] > 0) {
-            // Cut corner
-            path.lineTo(right - corners[1], top);
-            path.lineTo(right, top + corners[1]);
-        } else if (corners[1] > 0) {
-            // Rounded corner
-            path.lineTo(right - corners[1], top);
-            path.quadTo(right, top, right, top + corners[1]);
+        if (cc[1] && cs[1] > 0) {
+            path.lineTo(right - cs[1], top);
+            path.lineTo(right, top + cs[1]);
+        } else if (cs[1] > 0) {
+            path.lineTo(right - cs[1], top);
+            path.quadTo(right, top, right, top + cs[1]);
         } else {
-            // No corner
             path.lineTo(right, top);
         }
 
-        // Right edge to bottom-right
-        if (isCutCorner[2] && corners[2] > 0) {
-            // Cut corner
-            path.lineTo(right, bottom - corners[2]);
-            path.lineTo(right - corners[2], bottom);
-        } else if (corners[2] > 0) {
-            // Rounded corner
-            path.lineTo(right, bottom - corners[2]);
-            path.quadTo(right, bottom, right - corners[2], bottom);
+        if (cc[2] && cs[2] > 0) {
+            path.lineTo(right, bottom - cs[2]);
+            path.lineTo(right - cs[2], bottom);
+        } else if (cs[2] > 0) {
+            path.lineTo(right, bottom - cs[2]);
+            path.quadTo(right, bottom, right - cs[2], bottom);
         } else {
-            // No corner
             path.lineTo(right, bottom);
         }
 
-        // Bottom edge to bottom-left
-        if (isCutCorner[3] && corners[3] > 0) {
-            // Cut corner
-            path.lineTo(left + corners[3], bottom);
-            path.lineTo(left, bottom - corners[3]);
-        } else if (corners[3] > 0) {
-            // Rounded corner
-            path.lineTo(left + corners[3], bottom);
-            path.quadTo(left, bottom, left, bottom - corners[3]);
+        if (cc[3] && cs[3] > 0) {
+            path.lineTo(left + cs[3], bottom);
+            path.lineTo(left, bottom - cs[3]);
+        } else if (cs[3] > 0) {
+            path.lineTo(left + cs[3], bottom);
+            path.quadTo(left, bottom, left, bottom - cs[3]);
         } else {
-            // No corner
             path.lineTo(left, bottom);
         }
 
         path.close();
+    }
+
+    private Shader createShader(Rect bounds, int[] colors, GradientDrawable.Orientation orientation, int type) {
+        float x0 = bounds.left, y0 = bounds.top, x1 = bounds.right, y1 = bounds.bottom;
+        switch (orientation) {
+            case LEFT_RIGHT:
+                x0 = bounds.left; x1 = bounds.right; y0 = y1 = bounds.centerY(); break;
+            case RIGHT_LEFT:
+                x0 = bounds.right; x1 = bounds.left; y0 = y1 = bounds.centerY(); break;
+            case TOP_BOTTOM:
+                y0 = bounds.top; y1 = bounds.bottom; x0 = x1 = bounds.centerX(); break;
+            case BOTTOM_TOP:
+                y0 = bounds.bottom; y1 = bounds.top; x0 = x1 = bounds.centerX(); break;
+            case TL_BR:
+                x0 = bounds.left; y0 = bounds.top; x1 = bounds.right; y1 = bounds.bottom; break;
+            case TR_BL:
+                x0 = bounds.right; y0 = bounds.top; x1 = bounds.left; y1 = bounds.bottom; break;
+            case BL_TR:
+                x0 = bounds.left; y0 = bounds.bottom; x1 = bounds.right; y1 = bounds.top; break;
+            case BR_TL:
+                x0 = bounds.right; y0 = bounds.bottom; x1 = bounds.left; y1 = bounds.top; break;
+        }
+
+        switch (type) {
+            case GRADIENT_TYPE_RADIAL:
+                return new RadialGradient(bounds.centerX(), bounds.centerY(), Math.max(bounds.width(), bounds.height()) / 2f, colors, null, Shader.TileMode.CLAMP);
+            case GRADIENT_TYPE_SWEEP:
+                return new SweepGradient(bounds.centerX(), bounds.centerY(), colors, null);
+            default:
+                return new LinearGradient(x0, y0, x1, y1, colors, null, Shader.TileMode.CLAMP);
+        }
     }
 
     @Override
     public void draw(@NonNull Canvas canvas) {
-        if (getBounds().isEmpty()) {
-            return;
-        }
-
-        try {
-            // Draw shadow first
-            if (shadowEnabled && !shadowPath.isEmpty()) {
-                int shadowAlpha = (int) (Color.alpha(shadowColor) * (currentAlpha / 255f));
-                shadowPaint.setAlpha(shadowAlpha);
-                canvas.drawPath(shadowPath, shadowPaint);
-            }
-
-            // Draw fill
-            if (!fillPath.isEmpty()) {
-                canvas.drawPath(fillPath, fillPaint);
-            }
-
-            // Draw stroke
-            if (strokeWidth > 0 && strokeColor != Color.TRANSPARENT && !strokePath.isEmpty()) {
-                canvas.drawPath(strokePath, strokePaint);
-            }
-        } catch (Exception e) {
-            Log.e(TAG, "Error in draw", e);
+        canvas.drawPath(fillPath, fillPaint);
+        if (strokeWidth > 0) {
+            canvas.drawPath(strokePath, strokePaint);
         }
     }
 
     @Override
-    public void setAlpha(@IntRange(from = 0, to = 255) int alpha) {
-        alpha = Math.max(0, Math.min(255, alpha));
-        if (currentAlpha != alpha) {
-            currentAlpha = alpha;
-            fillPaint.setAlpha(alpha);
-            strokePaint.setAlpha(alpha);
-            invalidateSelf();
-        }
+    public void setAlpha(int alpha) {
+        fillPaint.setAlpha(alpha);
+        strokePaint.setAlpha(alpha);
     }
 
     @Override
-    public void setColorFilter(@Nullable ColorFilter colorFilter) {
-        if (fillPaint.getColorFilter() != colorFilter) {
-            fillPaint.setColorFilter(colorFilter);
-            strokePaint.setColorFilter(colorFilter);
-            invalidateSelf();
-        }
+    public void setColorFilter(ColorFilter colorFilter) {
+        fillPaint.setColorFilter(colorFilter);
+        strokePaint.setColorFilter(colorFilter);
     }
 
     @Override
     public int getOpacity() {
         return PixelFormat.TRANSLUCENT;
     }
-
-    @Override
-    public int getAlpha() {
-        return currentAlpha;
-    }
-
-    // Getters for current state
-    public int[] getGradientColors() {
-        return gradientColors.clone();
-    }
-
-    public float[] getGradientPositions() {
-        return gradientPositions != null ? gradientPositions.clone() : null;
-    }
-
-    public GradientDrawable.Orientation getOrientation() {
-        return orientation;
-    }
-
-    public float[] getCornerSizes() {
-        return cornerSizes.clone();
-    }
-
-    public boolean[] getCornerTypes() {
-        return isCutCorner.clone();
-    }
-
-    public int getStrokeColor() {
-        return strokeColor;
-    }
-
-    public float getStrokeWidth() {
-        return strokeWidth;
-    }
-
-    public int getStrokeType() {
-        return strokeType;
-    }
-
-    public boolean isShadowEnabled() {
-        return shadowEnabled;
-    }
-
-    private float getX0(Rect bounds) {
-        switch (orientation) {
-            case LEFT_RIGHT: return bounds.left;
-            case RIGHT_LEFT: return bounds.right;
-            case TOP_BOTTOM:
-            case BOTTOM_TOP: return (bounds.left + bounds.right) / 2f;
-            case TL_BR: return bounds.left;
-            case TR_BL: return bounds.right;
-            case BL_TR: return bounds.left;
-            case BR_TL: return bounds.right;
-            default: return bounds.left;
-        }
-    }
-
-    private float getX1(Rect bounds) {
-        switch (orientation) {
-            case LEFT_RIGHT: return bounds.right;
-            case RIGHT_LEFT: return bounds.left;
-            case TOP_BOTTOM:
-            case BOTTOM_TOP: return (bounds.left + bounds.right) / 2f;
-            case TL_BR: return bounds.right;
-            case TR_BL: return bounds.left;
-            case BL_TR: return bounds.right;
-            case BR_TL: return bounds.left;
-            default: return bounds.right;
-        }
-    }
-
-    private float getY0(Rect bounds) {
-        switch (orientation) {
-            case TOP_BOTTOM: return bounds.top;
-            case BOTTOM_TOP: return bounds.bottom;
-            case LEFT_RIGHT:
-            case RIGHT_LEFT: return (bounds.top + bounds.bottom) / 2f;
-            case TL_BR: return bounds.top;
-            case TR_BL: return bounds.top;
-            case BL_TR: return bounds.bottom;
-            case BR_TL: return bounds.bottom;
-            default: return bounds.top;
-        }
-    }
-
-    private float getY1(Rect bounds) {
-        switch (orientation) {
-            case TOP_BOTTOM: return bounds.bottom;
-            case BOTTOM_TOP: return bounds.top;
-            case LEFT_RIGHT:
-            case RIGHT_LEFT: return (bounds.top + bounds.bottom) / 2f;
-            case TL_BR: return bounds.bottom;
-            case TR_BL: return bounds.bottom;
-            case BL_TR: return bounds.top;
-            case BR_TL: return bounds.top;
-            default: return bounds.bottom;
-        }
-    }
-
 }
