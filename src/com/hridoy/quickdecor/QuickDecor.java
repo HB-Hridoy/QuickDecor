@@ -438,8 +438,11 @@ public class QuickDecor extends AndroidNonvisibleComponent {
     return resultColor;
   }
 
-
-
+  @SimpleFunction(description = "Convert dp to px")
+  public int dpToPx(int dp) {
+    float density = Density();
+    return Math.round(dp * density);
+  }
 
   //----------------------------------------------------------------------
   // Private Methods
