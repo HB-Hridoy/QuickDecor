@@ -565,11 +565,8 @@ public class QuickDecor extends AndroidNonvisibleComponent {
   public int[] parseGradientColors(Object colors) {
     if (colors instanceof YailList) {
       YailList yailList = (YailList) colors;
-      if (yailList.isEmpty()) {
-        return new int[] {
-                FormatColor("#00000000"),
-                FormatColor("#00000000")
-        };
+      if (yailList.size() == 0) {
+        return new int[] {0,0};
       }
       if (yailList.size() == 1) {
         int color = FormatColor(yailList.get(1)); // YailList is 1-indexed!
@@ -583,11 +580,8 @@ public class QuickDecor extends AndroidNonvisibleComponent {
       return result;
     } else if (colors instanceof List) {
       List<?> rawList = (List<?>) colors;
-      if (rawList.isEmpty()) {
-        return new int[] {
-                FormatColor("#00000000"),
-                FormatColor("#00000000")
-        };
+      if (rawList.size() == 0) {
+        return new int[] {0,0};
       }
       if (rawList.size() == 1) {
         int color = FormatColor(rawList.get(0));
@@ -656,7 +650,6 @@ public class QuickDecor extends AndroidNonvisibleComponent {
     Debug("parseHexColor", "Invalid hex length, throwing exception");
     throw new IllegalArgumentException("Hex color must be 6 or 8 digits: " + hex);
   }
-
 
   private void LG_BgColor(YailList colorsList, GradientDrawable layoutGradient) {
     String[] arry = colorsList.toStringArray();
