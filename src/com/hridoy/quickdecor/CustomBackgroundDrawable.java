@@ -31,6 +31,9 @@ public class CustomBackgroundDrawable extends Drawable {
     private static final float DEFAULT_DASH_LENGTH = 10f;
     private static final float DEFAULT_GAP_LENGTH = 5f;
     private static final float DEFAULT_DOT_LENGTH = 2f;
+    public static final int GRADIENT_TYPE_LINEAR = 0;
+    public static final int GRADIENT_TYPE_RADIAL = 1;
+    public static final int GRADIENT_TYPE_SWEEP = 2;
 
     // Paint objects
     private final Paint fillPaint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.DITHER_FLAG);
@@ -54,6 +57,9 @@ public class CustomBackgroundDrawable extends Drawable {
     private int[] gradientColors;
     private float[] gradientPositions;
     private GradientDrawable.Orientation orientation;
+    private int shape;
+    private int gradientType = GRADIENT_TYPE_LINEAR;
+
 
     // Stroke properties
     private int strokeColor = Color.TRANSPARENT;
@@ -92,8 +98,10 @@ public class CustomBackgroundDrawable extends Drawable {
     // Builder pattern for easier construction
     public static class Builder {
         private int[] gradientColors;
+        private int gradientType = GRADIENT_TYPE_LINEAR;
         private float[] gradientPositions;
         private GradientDrawable.Orientation orientation = GradientDrawable.Orientation.LEFT_RIGHT;
+        private int shape = GradientDrawable.RECTANGLE;
         private float[] cornerSizes = new float[4];
         private boolean[] isCutCorner = new boolean[4];
 
@@ -137,6 +145,11 @@ public class CustomBackgroundDrawable extends Drawable {
             return this;
         }
 
+        public Builder setGradientType(int gradientType) {
+            this.gradientType = gradientType;
+            return this;
+        }
+
         public Builder setGradientPositions(float... positions) {
             if (positions != null && positions.length != gradientColors.length) {
                 throw new IllegalArgumentException("Positions array must match colors array length");
@@ -148,6 +161,15 @@ public class CustomBackgroundDrawable extends Drawable {
         public Builder setOrientation(@NonNull GradientDrawable.Orientation orientation) {
             this.orientation = orientation;
             return this;
+        }
+
+        public Builder setShape(int shape) {
+            this.shape = shape;
+            return this;
+        }
+
+        public int getShape() {
+            return shape;
         }
 
         public Builder setCornerSizes(float topLeft, float topRight, float bottomRight, float bottomLeft) {
@@ -264,6 +286,8 @@ public class CustomBackgroundDrawable extends Drawable {
         this.gradientColors = builder.gradientColors.clone();
         this.gradientPositions = builder.gradientPositions != null ? builder.gradientPositions.clone() : null;
         this.orientation = builder.orientation;
+        this.shape = builder.shape;
+        this.gradientType = builder.gradientType; // Add this line
         System.arraycopy(builder.cornerSizes, 0, this.cornerSizes, 0, 4);
         System.arraycopy(builder.isCutCorner, 0, this.isCutCorner, 0, 4);
 
@@ -306,6 +330,23 @@ public class CustomBackgroundDrawable extends Drawable {
         } catch (Exception e) {
             Log.e(TAG, "Error validating configuration", e);
         }
+    }
+
+    public void setGradientType(int gradientType) {
+        if (gradientType < GRADIENT_TYPE_LINEAR || gradientType > GRADIENT_TYPE_SWEEP) {
+            Log.w(TAG, "Invalid gradient type: " + gradientType + ", using LINEAR");
+            gradientType = GRADIENT_TYPE_LINEAR;
+        }
+
+        if (this.gradientType != gradientType) {
+            this.gradientType = gradientType;
+            needsShaderUpdate = true;
+            invalidateSelf();
+        }
+    }
+
+    public int getGradientType() {
+        return gradientType;
     }
 
     // Enhanced stroke methods
@@ -544,11 +585,56 @@ public class CustomBackgroundDrawable extends Drawable {
 
     private void updateShader(Rect bounds) {
         try {
-            Shader shader = new LinearGradient(
-                    getX0(bounds), getY0(bounds),
-                    getX1(bounds), getY1(bounds),
-                    gradientColors, gradientPositions, Shader.TileMode.CLAMP
-            );
+            Shader shader = null;
+
+            switch (gradientType) {
+                case GRADIENT_TYPE_LINEAR:
+                    shader = new LinearGradient(
+                            getX0(bounds), getY0(bounds),
+                            getX1(bounds), getY1(bounds),
+                            gradientColors, gradientPositions, Shader.TileMode.CLAMP
+                    );
+                    break;
+
+                case GRADIENT_TYPE_RADIAL:
+                    float centerX = bounds.centerX();
+                    float centerY = bounds.centerY();
+                    float radius = Math.min(bounds.width(), bounds.height()) / 2f;
+
+                    // Ensure even color distribution
+                    if (gradientPositions == null || gradientPositions.length != gradientColors.length) {
+                        int colorCount = gradientColors.length;
+                        gradientPositions = new float[colorCount];
+                        for (int i = 0; i < colorCount; i++) {
+                            gradientPositions[i] = (float) i / (colorCount - 1);
+                        }
+                    }
+
+                    shader = new RadialGradient(
+                            centerX, centerY, radius,
+                            gradientColors, gradientPositions, Shader.TileMode.CLAMP
+                    );
+                    break;
+
+                case GRADIENT_TYPE_SWEEP:
+                    float sweepCenterX = bounds.centerX();
+                    float sweepCenterY = bounds.centerY();
+                    shader = new SweepGradient(
+                            sweepCenterX, sweepCenterY,
+                            gradientColors, gradientPositions
+                    );
+                    break;
+
+                default:
+                    // Default to linear
+                    shader = new LinearGradient(
+                            getX0(bounds), getY0(bounds),
+                            getX1(bounds), getY1(bounds),
+                            gradientColors, gradientPositions, Shader.TileMode.CLAMP
+                    );
+                    break;
+            }
+
             fillPaint.setShader(shader);
         } catch (Exception e) {
             Log.e(TAG, "Error creating shader", e);
@@ -581,10 +667,122 @@ public class CustomBackgroundDrawable extends Drawable {
             return;
         }
 
-        // Adjust corner sizes based on available space
-        float[] adjustedCorners = adjustCornerSizes(w, h, cornerSizes);
+        // Handle different shapes
+        switch (shape) {
+            case GradientDrawable.RECTANGLE:
+                buildRectanglePath(fillPath, boundsRect, cornerSizes, 0f);
+                break;
 
-        buildPath(fillPath, boundsRect, adjustedCorners, 0f);
+            case GradientDrawable.OVAL:
+                buildOvalPath(fillPath, boundsRect, 0f);
+                break;
+
+            case GradientDrawable.LINE:
+                buildLinePath(fillPath, boundsRect);
+                break;
+
+            case GradientDrawable.RING:
+                buildRingPath(fillPath, boundsRect);
+                break;
+
+            default:
+                // Default to rectangle
+                buildRectanglePath(fillPath, boundsRect, cornerSizes, 0f);
+                break;
+        }
+    }
+
+    private void buildOvalPath(Path path, RectF bounds, float inset) {
+        RectF ovalBounds = new RectF(
+                bounds.left + inset,
+                bounds.top + inset,
+                bounds.right - inset,
+                bounds.bottom - inset
+        );
+        path.addOval(ovalBounds, Path.Direction.CW);
+    }
+
+    private void buildLinePath(Path path, RectF bounds) {
+        // For line shape, draw from center-left to center-right
+        float centerY = bounds.centerY();
+        path.moveTo(bounds.left, centerY);
+        path.lineTo(bounds.right, centerY);
+    }
+
+    private void buildRingPath(Path path, RectF bounds) {
+        // Simple ring implementation - you might want to add more parameters
+        float centerX = bounds.centerX();
+        float centerY = bounds.centerY();
+        float outerRadius = Math.min(bounds.width(), bounds.height()) / 2f;
+        float innerRadius = outerRadius * 0.6f; // 60% of outer radius
+
+        // Outer circle
+        path.addCircle(centerX, centerY, outerRadius, Path.Direction.CW);
+        // Inner circle (subtracted)
+        path.addCircle(centerX, centerY, innerRadius, Path.Direction.CCW);
+    }
+
+    private void buildRectanglePath(Path path, RectF bounds, float[] corners, float inset) {
+        // Your existing buildPath logic goes here
+        float left = bounds.left + inset;
+        float top = bounds.top + inset;
+        float right = bounds.right - inset;
+        float bottom = bounds.bottom - inset;
+        float w = right - left;
+        float h = bottom - top;
+
+        if (w <= 0 || h <= 0) {
+            return;
+        }
+
+        // Adjust corner sizes based on available space
+        float[] adjustedCorners = adjustCornerSizes(w, h, corners);
+
+        // Start from top-left
+        if (isCutCorner[0] && adjustedCorners[0] > 0) {
+            path.moveTo(left, top + adjustedCorners[0]);
+            path.lineTo(left + adjustedCorners[0], top);
+        } else if (adjustedCorners[0] > 0) {
+            path.moveTo(left, top + adjustedCorners[0]);
+            path.quadTo(left, top, left + adjustedCorners[0], top);
+        } else {
+            path.moveTo(left, top);
+        }
+
+        // Top edge to top-right
+        if (isCutCorner[1] && adjustedCorners[1] > 0) {
+            path.lineTo(right - adjustedCorners[1], top);
+            path.lineTo(right, top + adjustedCorners[1]);
+        } else if (adjustedCorners[1] > 0) {
+            path.lineTo(right - adjustedCorners[1], top);
+            path.quadTo(right, top, right, top + adjustedCorners[1]);
+        } else {
+            path.lineTo(right, top);
+        }
+
+        // Right edge to bottom-right
+        if (isCutCorner[2] && adjustedCorners[2] > 0) {
+            path.lineTo(right, bottom - adjustedCorners[2]);
+            path.lineTo(right - adjustedCorners[2], bottom);
+        } else if (adjustedCorners[2] > 0) {
+            path.lineTo(right, bottom - adjustedCorners[2]);
+            path.quadTo(right, bottom, right - adjustedCorners[2], bottom);
+        } else {
+            path.lineTo(right, bottom);
+        }
+
+        // Bottom edge to bottom-left
+        if (isCutCorner[3] && adjustedCorners[3] > 0) {
+            path.lineTo(left + adjustedCorners[3], bottom);
+            path.lineTo(left, bottom - adjustedCorners[3]);
+        } else if (adjustedCorners[3] > 0) {
+            path.lineTo(left + adjustedCorners[3], bottom);
+            path.quadTo(left, bottom, left, bottom - adjustedCorners[3]);
+        } else {
+            path.lineTo(left, bottom);
+        }
+
+        path.close();
     }
 
     private void buildStrokePath() {
@@ -596,13 +794,39 @@ public class CustomBackgroundDrawable extends Drawable {
             return;
         }
 
-        // Adjust corner sizes for stroke
-        float[] adjustedCorners = adjustCornerSizes(w, h, cornerSizes);
-        for (int i = 0; i < 4; i++) {
-            adjustedCorners[i] = Math.max(0, adjustedCorners[i] - strokeWidth / 2f);
-        }
+        switch (shape) {
+            case GradientDrawable.RECTANGLE:
+                float[] adjustedCorners = adjustCornerSizes(w, h, cornerSizes);
+                for (int i = 0; i < 4; i++) {
+                    adjustedCorners[i] = Math.max(0, adjustedCorners[i] - strokeWidth / 2f);
+                }
+                buildRectanglePath(strokePath, strokeBoundsRect, adjustedCorners, 0f);
+                break;
 
-        buildPath(strokePath, strokeBoundsRect, adjustedCorners, 0f);
+            case GradientDrawable.OVAL:
+                RectF insetBounds = new RectF(
+                        boundsRect.left + strokeWidth / 2f,
+                        boundsRect.top + strokeWidth / 2f,
+                        boundsRect.right - strokeWidth / 2f,
+                        boundsRect.bottom - strokeWidth / 2f
+                );
+                buildOvalPath(strokePath, insetBounds, 0f);
+
+                break;
+
+            case GradientDrawable.LINE:
+                buildLinePath(strokePath, strokeBoundsRect);
+                break;
+
+            case GradientDrawable.RING:
+                buildRingPath(strokePath, strokeBoundsRect);
+                break;
+
+            default:
+                float[] defaultCorners = adjustCornerSizes(w, h, cornerSizes);
+                buildRectanglePath(strokePath, strokeBoundsRect, defaultCorners, 0f);
+                break;
+        }
     }
 
     private void buildShadowPath() {
