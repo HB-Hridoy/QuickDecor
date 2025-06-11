@@ -41,6 +41,20 @@ public class QuickDecor extends AndroidNonvisibleComponent {
     ORIENTATION_MAP.put(17, GradientDrawable.Orientation.TR_BL);
   }
 
+  private static final Map<Integer, Integer> SHAPE_MAP = new HashMap<>();
+  static {
+    SHAPE_MAP.put(0, 0);
+    SHAPE_MAP.put(1, 1);
+    SHAPE_MAP.put(2, 2);
+  }
+
+  private static final Map<Integer, Integer> GRADIENT_MAP = new HashMap<>();
+  static {
+    GRADIENT_MAP.put(0, 0);
+    GRADIENT_MAP.put(1, 1);
+    GRADIENT_MAP.put(2, 2);
+  }
+
   private static final Map<Integer, Integer> STROKE_TYPE_MAP = new HashMap<>();
   static {
     STROKE_TYPE_MAP.put(0, CustomBackgroundDrawable.STROKE_TYPE_SOLID);
