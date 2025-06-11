@@ -819,11 +819,12 @@ public class CustomBackgroundDrawable extends Drawable {
         return shadowEnabled;
     }
 
-    // Utility methods for gradient coordinates
     private float getX0(Rect bounds) {
         switch (orientation) {
             case LEFT_RIGHT: return bounds.left;
             case RIGHT_LEFT: return bounds.right;
+            case TOP_BOTTOM:
+            case BOTTOM_TOP: return (bounds.left + bounds.right) / 2f;
             case TL_BR: return bounds.left;
             case TR_BL: return bounds.right;
             case BL_TR: return bounds.left;
@@ -836,6 +837,8 @@ public class CustomBackgroundDrawable extends Drawable {
         switch (orientation) {
             case LEFT_RIGHT: return bounds.right;
             case RIGHT_LEFT: return bounds.left;
+            case TOP_BOTTOM:
+            case BOTTOM_TOP: return (bounds.left + bounds.right) / 2f;
             case TL_BR: return bounds.right;
             case TR_BL: return bounds.left;
             case BL_TR: return bounds.right;
@@ -848,6 +851,8 @@ public class CustomBackgroundDrawable extends Drawable {
         switch (orientation) {
             case TOP_BOTTOM: return bounds.top;
             case BOTTOM_TOP: return bounds.bottom;
+            case LEFT_RIGHT:
+            case RIGHT_LEFT: return (bounds.top + bounds.bottom) / 2f;
             case TL_BR: return bounds.top;
             case TR_BL: return bounds.top;
             case BL_TR: return bounds.bottom;
@@ -860,6 +865,8 @@ public class CustomBackgroundDrawable extends Drawable {
         switch (orientation) {
             case TOP_BOTTOM: return bounds.bottom;
             case BOTTOM_TOP: return bounds.top;
+            case LEFT_RIGHT:
+            case RIGHT_LEFT: return (bounds.top + bounds.bottom) / 2f;
             case TL_BR: return bounds.bottom;
             case TR_BL: return bounds.bottom;
             case BL_TR: return bounds.top;
@@ -867,4 +874,5 @@ public class CustomBackgroundDrawable extends Drawable {
             default: return bounds.bottom;
         }
     }
+
 }
