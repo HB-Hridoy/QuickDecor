@@ -3,27 +3,26 @@ package com.hridoy.quickdecor;
 import android.content.Context;
 import android.graphics.Color;
 import android.graphics.drawable.GradientDrawable;
+import android.os.Build;
 import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.LinearLayout;
-import com.google.appinventor.components.annotations.DesignerComponent;
-import com.google.appinventor.components.annotations.Options;
-import com.google.appinventor.components.annotations.SimpleEvent;
-import com.google.appinventor.components.annotations.SimpleFunction;
+import com.google.appinventor.components.annotations.*;
+import com.google.appinventor.components.common.PropertyTypeConstants;
 import com.google.appinventor.components.runtime.AndroidViewComponent;
 import com.google.appinventor.components.runtime.ComponentContainer;
 import com.google.appinventor.components.runtime.AndroidNonvisibleComponent;
 import com.google.appinventor.components.runtime.EventDispatcher;
 import com.google.appinventor.components.runtime.util.YailList;
+import com.hridoy.quickdecor.helpers.GradientType;
 import com.hridoy.quickdecor.helpers.Orientation;
 import com.hridoy.quickdecor.helpers.Shape;
+import com.hridoy.quickdecor.helpers.StrokeType;
 
 import java.util.*;
 
-// This annotation will not be present in the built extension
-// When you use the optimize, proguard or the deannonate feature.
-@DesignerComponent(version = 22, versionName = "1.0", description = "Developed by Hridoy by Fast.", iconName = "icon.png")
+@DesignerComponent(version = 75, versionName = "1.0", description = "Developed by Hridoy by Fast.", iconName = "icon.png")
 public class QuickDecor extends AndroidNonvisibleComponent {
 
   private final String TAG = "QuickDecor";
@@ -297,6 +296,138 @@ public class QuickDecor extends AndroidNonvisibleComponent {
     }
   }
 
+  @SimpleFunction(description = "Applies a gradient background with optional cut corners to a component. Requires Android 5.0+ (API 21+).\n" +
+          "Parameters:\n" +
+          "- component: The view to apply the background to.\n" +
+          "- colorList: List of gradient colors.\n" +
+          "- orientation: Gradient direction (e.g., LEFT_RIGHT).\n" +
+          "- cornerSizes: CSV string (e.g. '10,10,0,10') of corner radius/cut (1–4 values).\n" +
+          "- cutCorners: CSV string (e.g. 't,t,f,t') indicating which corners to cut (1–4 boolean values).\n" +
+          "    For both cornerSizes and cutCorners, supports 1–4 values:\n" +
+          "      - 1: Applies to all corners\n" +
+          "      - 2: [topLeft & bottomRight, bottomLeft & topRight]\n" +
+          "      - 3: [topLeft, topRight & bottomLeft, bottomRight]\n" +
+          "      - 4: [topLeft, bottomLeft, topRight, bottomRight]\n" +
+          "- stroke: Map with strokeType, strokeWidth, strokeColor, dashLength, and gapLength.")
+
+  public void CustomDrawableBackground(AndroidViewComponent component,
+                                          Object colorList,
+                                          @Options(GradientType.class) int gradientType,
+                                          @Options(Orientation.class) int orientation,
+                                          @Options(Shape.class) int shape,
+                                          String cornerSizes,
+                                          String cutCorners,
+                                          Object stroke
+                                       ) {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP) {
+      ErrorOccurred("CustomDrawableBackground", "Custom background requires API 21+");
+      Debug("CustomDrawableBackground", "Custom background requires API 21+");
+      return;
+    }
+
+    int[] colors = parseGradientColors(colorList);
+    Debug("CustomDrawableBackground", "Applied colors: " + Arrays.toString(colors));
+
+    Integer mGradientType = GRADIENT_MAP.getOrDefault(gradientType, 0);
+    GradientType gradientTypeEnum = GradientType.fromUnderlyingValue(gradientType);
+    String gradientTypeText = gradientTypeEnum != null ? gradientTypeEnum.name() : "Unknown";
+    Debug("CustomDrawableBackground", "Gradient type set to: " + gradientTypeText);
+
+    List<Integer> cornerList = parseCsvRow(cornerSizes);
+    float[] finalCorners = new float[cornerList.size()];
+    for (int i = 0; i < cornerList.size(); i++) {
+      finalCorners[i] = (float) dpToPx(cornerList.get(i));
+    }
+    Debug("CustomDrawableBackground", "Corner list applied: " + Arrays.toString(finalCorners));
+
+    boolean[] cut = parseCutCornerFlags(cutCorners);
+    Debug("CustomDrawableBackground", "Cut corners applied: " + Arrays.toString(cut));
+
+    GradientDrawable.Orientation mOrienttaion = ORIENTATION_MAP.getOrDefault(orientation, GradientDrawable.Orientation.LEFT_RIGHT);
+    Orientation orientationEnum = Orientation.fromUnderlyingValue(orientation);
+    String orientationText = orientationEnum != null ? orientationEnum.name() : "Unknown";
+    Debug("CustomDrawableBackground", "Orientation set to: " + orientationText);
+
+    Integer mShape = SHAPE_MAP.getOrDefault(shape, 0);
+    Shape shapeEnum = Shape.fromUnderlyingValue(shape);
+    String shapeText = shapeEnum != null ? shapeEnum.name() : "Unknown";
+    Debug("CustomDrawableBackground", "Shape set to: " + shapeText);
+
+    int strokeType = CustomBackgroundDrawable.STROKE_TYPE_SOLID;
+    int strokeWidth = 0;
+    int[] strokeColors = new int[]{0,0};
+    float dashLength = 0;
+    float gapLength = 0;
+    GradientDrawable.Orientation strokeOrientation = GradientDrawable.Orientation.LEFT_RIGHT;
+    int strokeGradientType = 0;
+
+    if (stroke instanceof Map) {
+      @SuppressWarnings("unchecked")
+      Map<String, Object> strokeMap = (Map<String, Object>) stroke;
+
+      strokeType = STROKE_TYPE_MAP.getOrDefault(((Number) strokeMap.get("strokeType")).intValue(), CustomBackgroundDrawable.STROKE_TYPE_SOLID);
+      strokeWidth = dpToPx(((Number) strokeMap.get("strokeWidth")).intValue());
+      strokeColors = parseGradientColors(strokeMap.get("strokeColors"));
+      dashLength = ((Number) strokeMap.get("dashLength")).floatValue();
+      gapLength = ((Number) strokeMap.get("gapLength")).floatValue();
+      strokeOrientation = ORIENTATION_MAP.getOrDefault(((Number) strokeMap.get("strokeOrientation")).intValue(), GradientDrawable.Orientation.LEFT_RIGHT);
+      strokeGradientType = GRADIENT_MAP.getOrDefault(((Number) strokeMap.get("strokeGradientType")).intValue(), 0);
+
+      Debug("CustomDrawableBackground", "Stroke colors set to : " + Arrays.toString(strokeColors));
+
+    } else if ("0".equals(stroke.toString().trim()) || "false".equalsIgnoreCase(stroke.toString().trim())) {
+      Debug("CustomDrawableBackground", "No stroke applied as stroke = " + stroke);
+    } else {
+      ErrorOccurred("CustomDrawableBackground", "Invalid stroke format: " + stroke);
+      Debug("CustomDrawableBackground", "Invalid stroke: defaulting to no stroke.");
+    }
+
+
+
+    CustomBackgroundDrawable drawable = new CustomBackgroundDrawable.Builder()
+            .setColors(colors)
+            .setGradientType(mGradientType)
+            .setOrientation(mOrienttaion)
+            .setShape(mShape)
+            .setCornerSizes(finalCorners[0], finalCorners[1], finalCorners[2], finalCorners[3])
+            .setCornerTypes(cut[0], cut[1], cut[2], cut[3])
+            .setStroke(strokeColors, strokeWidth)
+            .setStrokeType(strokeType, dashLength, gapLength)
+            .setStrokeGradientOrientation(strokeOrientation)
+            .setStrokeGradientType(strokeGradientType)
+            .build();
+
+
+    View view = component.getView();
+    view.setBackground(drawable);
+  }
+
+  @SimpleFunction(description = "Stroke Config. Works only on Android 5.0+ (API 21+).")
+  public Map<String, Object> SetStroke(
+          @Options(StrokeType.class) int strokeType,
+          @Options(GradientType.class) int gradientType,
+          @Options(Orientation.class) int orientation,
+          int strokeWidth,
+          Object strokeColor,
+          float length,
+          float gap
+  ) {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP) {
+      ErrorOccurred("CustomDrawableBackground", "Custom background requires API 21+");
+      Debug("CustomDrawableBackground", "Custom background requires API 21+");
+      return Collections.singletonMap("strokeType", strokeType);
+    }
+
+    Map<String, Object> result = new HashMap<>();
+    result.put("strokeType", strokeType);
+    result.put("strokeWidth", strokeWidth);
+    result.put("strokeColors", strokeColor);
+    result.put("dashLength", length);
+    result.put("gapLength", gap);
+    result.put("strokeOrientation", orientation);
+    result.put("strokeGradientType", gradientType);
+    return result;
+  }
 
   @SimpleFunction(description = "Parses a color value. Supports:\n" +
           "- #RRGGBB (hex)\n" +
