@@ -2,6 +2,7 @@ package com.hridoy.quickdecor;
 
 import android.content.Context;
 import android.graphics.Color;
+import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Build;
 import android.util.Log;
@@ -22,12 +23,12 @@ import com.hridoy.quickdecor.helpers.StrokeType;
 
 import java.util.*;
 
-@DesignerComponent(version = 75, versionName = "1.0", description = "Developed by Hridoy by Fast.", iconName = "icon.png")
+@DesignerComponent(version = 79, versionName = "1.0", description = "Developed by Hridoy by Fast.", iconName = "icon.png")
 public class QuickDecor extends AndroidNonvisibleComponent {
 
   private final String TAG = "QuickDecor";
 
-  private static final HashMap<String, GradientBackgroundTemplate> GRADIENT_BACKGROUND_TEMPLATES = new HashMap<>();
+  private static final HashMap<String, BackgroundDrawableTemplate> GRADIENT_BACKGROUND_TEMPLATES = new HashMap<>();
   private static final Map<Integer, GradientDrawable.Orientation> ORIENTATION_MAP = new HashMap<>();
   static {
     ORIENTATION_MAP.put(10, GradientDrawable.Orientation.LEFT_RIGHT);
@@ -187,25 +188,34 @@ public class QuickDecor extends AndroidNonvisibleComponent {
           "- strokeWidth: Width of the border stroke in pixels.\n" +
           "- strokeColor: Color integer for the stroke color.\n" +
           "If a template with the given ID exists, it will be replaced with the new one.")
-  public void CreateGradientBackgroundTemplate(
-          final String id,
-          final YailList colorsList,
-          final @Options(Orientation.class) int orientation,
-          final @Options(Shape.class) int shape,
-          final String cornerRadius,
-          final int strokeWidth,
-          final int strokeColor
+  public void CreateDrawableBackgroundTemplate(
+          String id,
+          Object colorsList,
+          @Options(GradientType.class) int gradientType,
+          @Options(Orientation.class) int orientation,
+          @Options(Shape.class) int shape,
+          String cornerSizes,
+          String cutCorners,
+          Object stroke
   ) {
-    Debug("CreateGradientBackgroundTemplate", "Creating/updating template with ID: " + id);
-
-    GradientBackgroundTemplate template = new GradientBackgroundTemplate(colorsList, orientation, shape, cornerRadius, strokeWidth, strokeColor);
+    Debug("CreateDrawableBackgroundTemplate", "Creating/updating template with ID: " + id);
+    
+    BackgroundDrawableTemplate template = new BackgroundDrawableTemplate(
+            colorsList,
+            gradientType,
+            orientation,
+            shape,
+            cornerSizes,
+            cutCorners,
+            stroke
+    );
 
     if (GRADIENT_BACKGROUND_TEMPLATES.containsKey(id)) {
       GRADIENT_BACKGROUND_TEMPLATES.replace(id, template);
-      Debug("CreateGradientBackgroundTemplate", "Replaced existing template with ID: " + id);
+      Debug("CreateDrawableBackgroundTemplate", "Replaced existing template with ID: " + id);
     } else {
       GRADIENT_BACKGROUND_TEMPLATES.put(id, template);
-      Debug("CreateGradientBackgroundTemplate", "Added new template with ID: " + id);
+      Debug("CreateDrawableBackgroundTemplate", "Added new template with ID: " + id);
     }
   }
 
@@ -215,84 +225,29 @@ public class QuickDecor extends AndroidNonvisibleComponent {
           "- id: The unique identifier of the gradient template to apply.\n" +
           "- component: The component to which the gradient background will be applied.\n" +
           "Raises an error if the template ID does not exist.")
-  public void ApplyGradientBackgroundTemplate(final String id, final AndroidViewComponent component) {
-    Debug("ApplyGradientBackgroundTemplate", "Attempting to apply template with ID: " + id);
+  public void ApplyDrawableBackgroundTemplate(final String id, final AndroidViewComponent component) {
+    Debug("ApplyDrawableBackgroundTemplate", "Attempting to apply template with ID: " + id);
 
-    GradientBackgroundTemplate template = GRADIENT_BACKGROUND_TEMPLATES.get(id);
+    BackgroundDrawableTemplate template = GRADIENT_BACKGROUND_TEMPLATES.get(id);
 
     if (template != null) {
-      Debug("ApplyGradientBackgroundTemplate", "Template found. Applying to component: " + component.getClass().getSimpleName());
+      Debug("ApplyDrawableBackgroundTemplate", "Template found. Applying to component: " + component.getClass().getSimpleName());
 
-      GradientBackground(
+      CustomDrawableBackground(
               component,
               template.getColorsList(),
+              template.getGradientType(),
               template.getOrientation(),
               template.getShape(),
-              template.getCornersRadius(),
-              template.getStrokeWidth(),
-              template.getStrokeColor()
+              template.getCornerSizes(),
+              template.getCutCorners(), 
+              template.getStroke()
       );
 
-      Debug("ApplyGradientBackgroundTemplate", "Gradient background applied successfully.");
+      Debug("ApplyDrawableBackgroundTemplate", "Gradient background applied successfully.");
     } else {
-      ErrorOccurred("ApplyGradientBackgroundTemplate", "Template ID '" + id + "' does not exist.");
-      Debug("ApplyGradientBackgroundTemplate", "Failed to find template with ID: " + id);
-    }
-  }
-
-
-  @SimpleFunction(description = "Sets a gradient background to the specified view component.\n" +
-          "Parameters:\n" +
-          "- component: The view component to apply the gradient background.\n" +
-          "- colorsList: List of colors used in the gradient.\n" +
-          "- orientation: Gradient orientation (see Orientation options).\n" +
-          "- shape: Shape of the gradient background (see Shape options).\n" +
-          "- cornerRadius: Corner radius values as a CSV string (e.g., '10' or '10,20,30,40').\n" +
-          "- strokeWidth: Width of the border stroke in pixels (multiplied by 5 internally).\n" +
-          "- strokeColor: Color integer for the stroke color.")
-  public void GradientBackground(
-          AndroidViewComponent component,
-          YailList colorsList,
-          @Options(Orientation.class) int orientation,
-          @Options(Shape.class) int shape,
-          String cornerRadius,
-          int strokeWidth,
-          int strokeColor
-  ) {
-    Debug("GradientBackground", "Setting gradient background for component: " + component.getClass().getSimpleName());
-
-    try {
-      GradientDrawable layoutGradient = new GradientDrawable();
-
-      LG_BgColor(colorsList, layoutGradient);
-      Debug("GradientBackground", "Applied colors: " + colorsList.toString());
-
-      LG_Orientation(orientation, layoutGradient);
-      Orientation orientationEnum = Orientation.fromUnderlyingValue(orientation);
-      String orientationText = orientationEnum != null ? orientationEnum.name() : "Unknown";
-      Debug("GradientBackground", "Orientation set to: " + orientationText);
-
-      LG_Shape(shape, layoutGradient);
-      Shape shapeEnum = Shape.fromUnderlyingValue(shape);
-      String shapeText = shapeEnum != null ? shapeEnum.name() : "Unknown";
-      Debug("GradientBackground", "Shape set to: " + shapeText);
-
-      List<Integer> cornerRadiusList = parseCsvRow(cornerRadius);
-      LG_CornerRadius(cornerRadiusList, layoutGradient);
-      Debug("GradientBackground", "Corner radius applied: " + cornerRadiusList.toString());
-
-      int scaledStrokeWidth = dpToPx(strokeWidth);
-      layoutGradient.setStroke(scaledStrokeWidth, strokeColor);
-      Debug("GradientBackground", "Stroke set with width: " + scaledStrokeWidth + " and color: " + strokeColor);
-
-      // Clear previous background color to avoid overlay issues
-      component.getView().setBackgroundColor(0xFFFFFF);
-      component.getView().setBackground(layoutGradient);
-
-      Debug("GradientBackground", "Gradient background successfully applied.");
-    } catch (Exception e) {
-      ErrorOccurred("GradientBackground", "Failed to set gradient background: " + e.getMessage());
-      Debug("GradientBackground", "Exception: " + e.toString());
+      ErrorOccurred("ApplyDrawableBackgroundTemplate", "Template ID '" + id + "' does not exist.");
+      Debug("ApplyDrawableBackgroundTemplate", "Failed to find template with ID: " + id);
     }
   }
 
@@ -311,7 +266,7 @@ public class QuickDecor extends AndroidNonvisibleComponent {
           "- stroke: Map with strokeType, strokeWidth, strokeColor, dashLength, and gapLength.")
 
   public void CustomDrawableBackground(AndroidViewComponent component,
-                                          Object colorList,
+                                          Object colorsList,
                                           @Options(GradientType.class) int gradientType,
                                           @Options(Orientation.class) int orientation,
                                           @Options(Shape.class) int shape,
@@ -325,7 +280,7 @@ public class QuickDecor extends AndroidNonvisibleComponent {
       return;
     }
 
-    int[] colors = parseGradientColors(colorList);
+    int[] colors = parseGradientColors(colorsList);
     Debug("CustomDrawableBackground", "Applied colors: " + Arrays.toString(colors));
 
     Integer mGradientType = GRADIENT_MAP.getOrDefault(gradientType, 0);
