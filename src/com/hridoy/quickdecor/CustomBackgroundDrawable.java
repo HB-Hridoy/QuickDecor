@@ -187,53 +187,64 @@ public class CustomBackgroundDrawable extends Drawable {
 
     private void buildCustomPath(Path path, RectF rect, float inset) {
         path.reset();
-        float left = rect.left;
-        float top = rect.top;
-        float right = rect.right;
-        float bottom = rect.bottom;
+        float left = rect.left + inset;
+        float top = rect.top + inset;
+        float right = rect.right - inset;
+        float bottom = rect.bottom - inset;
+
+        float maxW = (right - left) / 2f;
+        float maxH = (bottom - top) / 2f;
 
         float[] cs = new float[4];
         for (int i = 0; i < 4; i++) {
-            cs[i] = Math.max(0, cornerSizes[i] - inset);
+            // clamp only for round corners
+            if (isCutCorner[i]) {
+                cs[i] = Math.max(0, cornerSizes[i]);
+            } else {
+                cs[i] = Math.max(0, Math.min(cornerSizes[i], Math.min(maxW, maxH)));
+            }
         }
-        boolean[] cc = isCutCorner;
 
-        if (cc[0] && cs[0] > 0) {
+        // Start top-left
+        if (isCutCorner[0] && cs[0] > 0) {
             path.moveTo(left, top + cs[0]);
             path.lineTo(left + cs[0], top);
         } else if (cs[0] > 0) {
             path.moveTo(left, top + cs[0]);
-            path.quadTo(left, top, left + cs[0], top);
+            path.arcTo(new RectF(left, top, left + 2 * cs[0], top + 2 * cs[0]), 180, 90);
         } else {
             path.moveTo(left, top);
         }
 
-        if (cc[1] && cs[1] > 0) {
+        // Top edge → top-right corner
+        if (isCutCorner[1] && cs[1] > 0) {
             path.lineTo(right - cs[1], top);
             path.lineTo(right, top + cs[1]);
         } else if (cs[1] > 0) {
             path.lineTo(right - cs[1], top);
-            path.quadTo(right, top, right, top + cs[1]);
+            path.arcTo(new RectF(right - 2 * cs[1], top, right, top + 2 * cs[1]), -90, 90);
         } else {
             path.lineTo(right, top);
         }
 
-        if (cc[2] && cs[2] > 0) {
+        // Right edge → bottom-right corner
+        if (isCutCorner[2] && cs[2] > 0) {
             path.lineTo(right, bottom - cs[2]);
             path.lineTo(right - cs[2], bottom);
         } else if (cs[2] > 0) {
             path.lineTo(right, bottom - cs[2]);
-            path.quadTo(right, bottom, right - cs[2], bottom);
+            path.arcTo(new RectF(right - 2 * cs[2], bottom - 2 * cs[2], right, bottom), 0, 90);
         } else {
             path.lineTo(right, bottom);
         }
 
-        if (cc[3] && cs[3] > 0) {
+        // Bottom edge → bottom-left corner
+        if (isCutCorner[3] && cs[3] > 0) {
             path.lineTo(left + cs[3], bottom);
             path.lineTo(left, bottom - cs[3]);
         } else if (cs[3] > 0) {
             path.lineTo(left + cs[3], bottom);
-            path.quadTo(left, bottom, left, bottom - cs[3]);
+            path.arcTo(new RectF(left, bottom - 2 * cs[3], left + 2 * cs[3], bottom), 90, 90);
         } else {
             path.lineTo(left, bottom);
         }
