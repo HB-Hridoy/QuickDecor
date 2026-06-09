@@ -23,7 +23,7 @@ import com.hridoy.quickdecor.helpers.StrokeType;
 
 import java.util.*;
 
-@DesignerComponent(version = 85, versionName = "1.0", description = "Developed by Hridoy by Fast.", iconName = "icon.png")
+@DesignerComponent(version = 88, versionName = "v1.0.0-beta1", description = "Developed by Hridoy by Fast.", iconName = "icon.png")
 public class QuickDecor extends AndroidNonvisibleComponent {
 
   private final String TAG = "QuickDecor";
@@ -64,6 +64,8 @@ public class QuickDecor extends AndroidNonvisibleComponent {
     STROKE_TYPE_MAP.put(4, CustomBackgroundDrawable.STROKE_TYPE_CUSTOM);
   }
   private boolean DEBUG_MODE = true;
+
+  private AndroidViewComponent lastUsedComponent = null;
 
   private Context context;
 
@@ -135,10 +137,23 @@ public class QuickDecor extends AndroidNonvisibleComponent {
 
       Debug("SetPadding", "Computed: top=" + top + ", left=" + left + ", bottom=" + bottom + ", right=" + right);
       view.setPadding(left, top, right, bottom);
+
+      lastUsedComponent = (AndroidViewComponent) component;
     } catch (Exception e) {
       ErrorOccurred("SetPadding", "Invalid padding value. Ensure values are numbers.");
       Debug("SetPadding", "Exception: " + e.getMessage());
     }
+  }
+
+  @SimpleFunction(description = "Sets padding for the component. Use format: single value (e.g., '10') or four values (e.g., '10,20,30,40') for top, left, bottom, right.")
+  public void SetPaddingToLastUsedComponent(String padding){
+    if (lastUsedComponent != null){
+      SetPadding(lastUsedComponent, padding);
+      Debug("SetPaddingToLastUsedComponent", "Used Last Component" + lastUsedComponent);
+    }else{
+      ErrorOccurred("SetPaddingToLastUsedComponent", "No last used component");
+    }
+
   }
 
   @SimpleFunction(description = "Sets margin for the component. Use format: single value (e.g., '10') or four values (e.g., '10,20,30,40') for top, left, bottom, right.")
@@ -172,9 +187,20 @@ public class QuickDecor extends AndroidNonvisibleComponent {
       LinearLayout.LayoutParams layoutParams = (LinearLayout.LayoutParams) params;
       layoutParams.setMargins(left, top, right, bottom);
       view.setLayoutParams(layoutParams);
+      lastUsedComponent = (AndroidViewComponent) component;
     } catch (Exception e) {
       ErrorOccurred("SetMargin", "Failed to set margins. Ensure values are valid integers.");
       Debug("SetMargin", "Exception: " + e.getMessage());
+    }
+  }
+
+  @SimpleFunction(description = "Sets margin for the component. Use format: single value (e.g., '10') or four values (e.g., '10,20,30,40') for top, left, bottom, right.")
+  public void SetMarginToLastUsedComponent(String margin){
+    if (lastUsedComponent != null){
+      SetMargin(lastUsedComponent, margin);
+      Debug("SetMarginToLastUsedComponent", "Last Used Component: " + lastUsedComponent);
+    }else{
+      ErrorOccurred("SetMarginToLastUsedComponent", "No last used component");
     }
   }
 
@@ -245,6 +271,7 @@ public class QuickDecor extends AndroidNonvisibleComponent {
       );
 
       Debug("ApplyDrawableBackgroundTemplate", "Gradient background applied successfully.");
+      lastUsedComponent = component;
     } else {
       ErrorOccurred("ApplyDrawableBackgroundTemplate", "Template ID '" + id + "' does not exist.");
       Debug("ApplyDrawableBackgroundTemplate", "Failed to find template with ID: " + id);
@@ -355,6 +382,8 @@ public class QuickDecor extends AndroidNonvisibleComponent {
 
     View view = component.getView();
     view.setBackground(drawable);
+
+    lastUsedComponent = component;
   }
 
   @SimpleFunction(description = "Stroke Config. Works only on Android 5.0+ (API 21+).")
@@ -528,6 +557,11 @@ public class QuickDecor extends AndroidNonvisibleComponent {
   public int dpToPx(int dp) {
     float density = Density();
     return Math.round(dp * density);
+  }
+
+  @SimpleFunction(description = "")
+  public AndroidViewComponent LastUsedComponent(){
+    return lastUsedComponent;
   }
 
   //----------------------------------------------------------------------
