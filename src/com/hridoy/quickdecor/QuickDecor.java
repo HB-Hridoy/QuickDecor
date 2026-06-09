@@ -23,7 +23,7 @@ import com.hridoy.quickdecor.helpers.StrokeType;
 
 import java.util.*;
 
-@DesignerComponent(version = 84, versionName = "1.0", description = "Developed by Hridoy by Fast.", iconName = "icon.png")
+@DesignerComponent(version = 85, versionName = "1.0", description = "Developed by Hridoy by Fast.", iconName = "icon.png")
 public class QuickDecor extends AndroidNonvisibleComponent {
 
   private final String TAG = "QuickDecor";
