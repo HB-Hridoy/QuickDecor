@@ -23,7 +23,7 @@ import com.hridoy.quickdecor.helpers.StrokeType;
 
 import java.util.*;
 
-@DesignerComponent(version = 88, versionName = "v1.0.0-beta1", description = "Developed by Hridoy by Fast.", iconName = "icon.png")
+@DesignerComponent(version = 89, versionName = "v1.0.0-beta1", description = "Developed by Hridoy by Fast.", iconName = "icon.png")
 public class QuickDecor extends AndroidNonvisibleComponent {
 
   private final String TAG = "QuickDecor";
@@ -202,6 +202,11 @@ public class QuickDecor extends AndroidNonvisibleComponent {
     }else{
       ErrorOccurred("SetMarginToLastUsedComponent", "No last used component");
     }
+  }
+
+  @SimpleFunction(description = "")
+  public void SetCornerRadius(final AndroidViewComponent component, final int color, final String cornerSizes){
+    CustomDrawableBackground(component, color, 0, 10, 0, cornerSizes, "f", "0");
   }
 
   @SimpleFunction(description = "Applies a gradient background with optional cut corners to a component. Requires Android 5.0+ (API 21+).\n" +
