@@ -1,37 +1,75 @@
 package com.hridoy.quickdecor;
 
+import android.content.Context;
 import android.graphics.Color;
+import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
+import android.os.Build;
 import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.LinearLayout;
-import com.google.appinventor.components.annotations.DesignerComponent;
-import com.google.appinventor.components.annotations.Options;
-import com.google.appinventor.components.annotations.SimpleEvent;
-import com.google.appinventor.components.annotations.SimpleFunction;
+import com.google.appinventor.components.annotations.*;
+import com.google.appinventor.components.common.PropertyTypeConstants;
 import com.google.appinventor.components.runtime.AndroidViewComponent;
 import com.google.appinventor.components.runtime.ComponentContainer;
 import com.google.appinventor.components.runtime.AndroidNonvisibleComponent;
 import com.google.appinventor.components.runtime.EventDispatcher;
 import com.google.appinventor.components.runtime.util.YailList;
+import com.hridoy.quickdecor.helpers.GradientType;
 import com.hridoy.quickdecor.helpers.Orientation;
 import com.hridoy.quickdecor.helpers.Shape;
+import com.hridoy.quickdecor.helpers.StrokeType;
 
 import java.util.*;
 
-// This annotation will not be present in the built extension
-// When you use the optimize, proguard or the deannonate feature.
-@DesignerComponent(version = 22, versionName = "1.0", description = "Developed by Hridoy by Fast.", iconName = "icon.png")
+@DesignerComponent(version = 84, versionName = "1.0", description = "Developed by Hridoy by Fast.", iconName = "icon.png")
 public class QuickDecor extends AndroidNonvisibleComponent {
 
   private final String TAG = "QuickDecor";
 
-  private static final HashMap<String, GradientBackgroundTemplate> GRADIENT_BACKGROUND_TEMPLATES = new HashMap<>();
-  private boolean isDebugMode = true;
+  private static final HashMap<String, BackgroundDrawableTemplate> GRADIENT_BACKGROUND_TEMPLATES = new HashMap<>();
+  private static final Map<Integer, GradientDrawable.Orientation> ORIENTATION_MAP = new HashMap<>();
+  static {
+    ORIENTATION_MAP.put(10, GradientDrawable.Orientation.LEFT_RIGHT);
+    ORIENTATION_MAP.put(11, GradientDrawable.Orientation.RIGHT_LEFT);
+    ORIENTATION_MAP.put(12, GradientDrawable.Orientation.TOP_BOTTOM);
+    ORIENTATION_MAP.put(13, GradientDrawable.Orientation.BOTTOM_TOP);
+    ORIENTATION_MAP.put(14, GradientDrawable.Orientation.BL_TR);
+    ORIENTATION_MAP.put(15, GradientDrawable.Orientation.BR_TL);
+    ORIENTATION_MAP.put(16, GradientDrawable.Orientation.TL_BR);
+    ORIENTATION_MAP.put(17, GradientDrawable.Orientation.TR_BL);
+  }
+
+  private static final Map<Integer, Integer> SHAPE_MAP = new HashMap<>();
+  static {
+    SHAPE_MAP.put(0, 0);
+    SHAPE_MAP.put(1, 1);
+    SHAPE_MAP.put(2, 2);
+  }
+
+  private static final Map<Integer, Integer> GRADIENT_MAP = new HashMap<>();
+  static {
+    GRADIENT_MAP.put(0, 0);
+    GRADIENT_MAP.put(1, 1);
+    GRADIENT_MAP.put(2, 2);
+  }
+
+  private static final Map<Integer, Integer> STROKE_TYPE_MAP = new HashMap<>();
+  static {
+    STROKE_TYPE_MAP.put(0, CustomBackgroundDrawable.STROKE_TYPE_SOLID);
+    STROKE_TYPE_MAP.put(1, CustomBackgroundDrawable.STROKE_TYPE_DASHED);
+    STROKE_TYPE_MAP.put(2, CustomBackgroundDrawable.STROKE_TYPE_DOTTED);
+    STROKE_TYPE_MAP.put(3, CustomBackgroundDrawable.STROKE_TYPE_DASH_DOT);
+    STROKE_TYPE_MAP.put(4, CustomBackgroundDrawable.STROKE_TYPE_CUSTOM);
+  }
+  private boolean DEBUG_MODE = true;
+
+  private Context context;
 
   public QuickDecor(ComponentContainer container) {
     super(container.$form());
+      this.context = container.$context();
   }
 
   //----------------------------------------------------------------------
@@ -45,12 +83,33 @@ public class QuickDecor extends AndroidNonvisibleComponent {
 
   @SimpleEvent(description = "Triggered when a debug message is generated. This event is only fired if debugging is enabled.")
   public void Debug(String source, String message) {
-    if (isDebugMode) {
+    if (LogDebug()) {
       EventDispatcher.dispatchEvent(this, "Debug", source, message);
-      Log.i(TAG, source + " : " + message);
+      Log.d(TAG, source + " : " + message);
     }
   }
 
+  //----------------------------------------------------------------------
+  // Properties
+  //----------------------------------------------------------------------
+
+  @SimpleProperty(description = "Get display density")
+  public float Density() {
+    return this.context.getResources().getDisplayMetrics().density;
+  }
+
+  @DesignerProperty(
+          editorType = PropertyTypeConstants.PROPERTY_TYPE_BOOLEAN,
+          defaultValue = "False"
+  )
+  @SimpleProperty(description = "")
+  public void LogDebug(boolean debug){
+    DEBUG_MODE = debug;
+  }
+  @SimpleProperty(description = "")
+  public boolean LogDebug(){
+    return DEBUG_MODE;
+  }
 
   //----------------------------------------------------------------------
   // Methods
@@ -69,10 +128,10 @@ public class QuickDecor extends AndroidNonvisibleComponent {
     Debug("SetPadding", "Parsed padding values: " + paddingValues.toString());
 
     try {
-      int top = paddingValues.get(0) * 3;
-      int left = paddingValues.get(1) * 3;
-      int bottom = paddingValues.get(2) * 3;
-      int right = paddingValues.get(3) * 3;
+      int top = dpToPx(paddingValues.get(0));
+      int left = dpToPx(paddingValues.get(1));
+      int bottom = dpToPx(paddingValues.get(2));
+      int right = dpToPx(paddingValues.get(3));
 
       Debug("SetPadding", "Computed: top=" + top + ", left=" + left + ", bottom=" + bottom + ", right=" + right);
       view.setPadding(left, top, right, bottom);
@@ -103,10 +162,10 @@ public class QuickDecor extends AndroidNonvisibleComponent {
     Debug("SetMargin", "Parsed margin values: " + marginValues.toString());
 
     try {
-      int top = marginValues.get(0) * 3;
-      int left = marginValues.get(1) * 3;
-      int bottom = marginValues.get(2) * 3;
-      int right = marginValues.get(3) * 3;
+      int top = dpToPx(marginValues.get(0));
+      int left = dpToPx(marginValues.get(1));
+      int bottom = dpToPx(marginValues.get(2));
+      int right = dpToPx(marginValues.get(3));
 
       Debug("SetMargin", "Computed: top=" + top + ", left=" + left + ", bottom=" + bottom + ", right=" + right);
 
@@ -129,25 +188,34 @@ public class QuickDecor extends AndroidNonvisibleComponent {
           "- strokeWidth: Width of the border stroke in pixels.\n" +
           "- strokeColor: Color integer for the stroke color.\n" +
           "If a template with the given ID exists, it will be replaced with the new one.")
-  public void CreateGradientBackgroundTemplate(
-          final String id,
-          final YailList colorsList,
-          final @Options(Orientation.class) int orientation,
-          final @Options(Shape.class) int shape,
-          final String cornerRadius,
-          final int strokeWidth,
-          final int strokeColor
+  public void CreateDrawableBackgroundTemplate(
+          String id,
+          Object colorsList,
+          @Options(GradientType.class) int gradientType,
+          @Options(Orientation.class) int orientation,
+          @Options(Shape.class) int shape,
+          String cornerSizes,
+          String cutCorners,
+          Object stroke
   ) {
-    Debug("CreateGradientBackgroundTemplate", "Creating/updating template with ID: " + id);
-
-    GradientBackgroundTemplate template = new GradientBackgroundTemplate(colorsList, orientation, shape, cornerRadius, strokeWidth, strokeColor);
+    Debug("CreateDrawableBackgroundTemplate", "Creating/updating template with ID: " + id);
+    
+    BackgroundDrawableTemplate template = new BackgroundDrawableTemplate(
+            colorsList,
+            gradientType,
+            orientation,
+            shape,
+            cornerSizes,
+            cutCorners,
+            stroke
+    );
 
     if (GRADIENT_BACKGROUND_TEMPLATES.containsKey(id)) {
       GRADIENT_BACKGROUND_TEMPLATES.replace(id, template);
-      Debug("CreateGradientBackgroundTemplate", "Replaced existing template with ID: " + id);
+      Debug("CreateDrawableBackgroundTemplate", "Replaced existing template with ID: " + id);
     } else {
       GRADIENT_BACKGROUND_TEMPLATES.put(id, template);
-      Debug("CreateGradientBackgroundTemplate", "Added new template with ID: " + id);
+      Debug("CreateDrawableBackgroundTemplate", "Added new template with ID: " + id);
     }
   }
 
@@ -157,87 +225,164 @@ public class QuickDecor extends AndroidNonvisibleComponent {
           "- id: The unique identifier of the gradient template to apply.\n" +
           "- component: The component to which the gradient background will be applied.\n" +
           "Raises an error if the template ID does not exist.")
-  public void ApplyGradientBackgroundTemplate(final String id, final AndroidViewComponent component) {
-    Debug("ApplyGradientBackgroundTemplate", "Attempting to apply template with ID: " + id);
+  public void ApplyDrawableBackgroundTemplate(final String id, final AndroidViewComponent component) {
+    Debug("ApplyDrawableBackgroundTemplate", "Attempting to apply template with ID: " + id);
 
-    GradientBackgroundTemplate template = GRADIENT_BACKGROUND_TEMPLATES.get(id);
+    BackgroundDrawableTemplate template = GRADIENT_BACKGROUND_TEMPLATES.get(id);
 
     if (template != null) {
-      Debug("ApplyGradientBackgroundTemplate", "Template found. Applying to component: " + component.getClass().getSimpleName());
+      Debug("ApplyDrawableBackgroundTemplate", "Template found. Applying to component: " + component.getClass().getSimpleName());
 
-      GradientBackground(
+      CustomDrawableBackground(
               component,
               template.getColorsList(),
+              template.getGradientType(),
               template.getOrientation(),
               template.getShape(),
-              template.getCornersRadius(),
-              template.getStrokeWidth(),
-              template.getStrokeColor()
+              template.getCornerSizes(),
+              template.getCutCorners(), 
+              template.getStroke()
       );
 
-      Debug("ApplyGradientBackgroundTemplate", "Gradient background applied successfully.");
+      Debug("ApplyDrawableBackgroundTemplate", "Gradient background applied successfully.");
     } else {
-      ErrorOccurred("ApplyGradientBackgroundTemplate", "Template ID '" + id + "' does not exist.");
-      Debug("ApplyGradientBackgroundTemplate", "Failed to find template with ID: " + id);
+      ErrorOccurred("ApplyDrawableBackgroundTemplate", "Template ID '" + id + "' does not exist.");
+      Debug("ApplyDrawableBackgroundTemplate", "Failed to find template with ID: " + id);
     }
   }
 
-
-  @SimpleFunction(description = "Sets a gradient background to the specified view component.\n" +
+  @SimpleFunction(description = "Applies a gradient background with optional cut corners to a component. Requires Android 5.0+ (API 21+).\n" +
           "Parameters:\n" +
-          "- component: The view component to apply the gradient background.\n" +
-          "- colorsList: List of colors used in the gradient.\n" +
-          "- orientation: Gradient orientation (see Orientation options).\n" +
-          "- shape: Shape of the gradient background (see Shape options).\n" +
-          "- cornerRadius: Corner radius values as a CSV string (e.g., '10' or '10,20,30,40').\n" +
-          "- strokeWidth: Width of the border stroke in pixels (multiplied by 5 internally).\n" +
-          "- strokeColor: Color integer for the stroke color.")
-  public void GradientBackground(
-          AndroidViewComponent component,
-          YailList colorsList,
-          @Options(Orientation.class) int orientation,
-          @Options(Shape.class) int shape,
-          String cornerRadius,
-          int strokeWidth,
-          int strokeColor
-  ) {
-    Debug("GradientBackground", "Setting gradient background for component: " + component.getClass().getSimpleName());
+          "- component: The view to apply the background to.\n" +
+          "- colorList: List of gradient colors.\n" +
+          "- orientation: Gradient direction (e.g., LEFT_RIGHT).\n" +
+          "- cornerSizes: CSV string (e.g. '10,10,0,10') of corner radius/cut (1–4 values).\n" +
+          "- cutCorners: CSV string (e.g. 't,t,f,t') indicating which corners to cut (1–4 boolean values).\n" +
+          "    For both cornerSizes and cutCorners, supports 1–4 values:\n" +
+          "      - 1: Applies to all corners\n" +
+          "      - 2: [topLeft & bottomRight, bottomLeft & topRight]\n" +
+          "      - 3: [topLeft, topRight & bottomLeft, bottomRight]\n" +
+          "      - 4: [topLeft, bottomLeft, topRight, bottomRight]\n" +
+          "- stroke: Map with strokeType, strokeWidth, strokeColor, dashLength, and gapLength.")
 
-    try {
-      GradientDrawable layoutGradient = new GradientDrawable();
-
-      LG_BgColor(colorsList, layoutGradient);
-      Debug("GradientBackground", "Applied colors: " + colorsList.toString());
-
-      LG_Orientation(orientation, layoutGradient);
-      Orientation orientationEnum = Orientation.fromUnderlyingValue(orientation);
-      String orientationText = orientationEnum != null ? orientationEnum.name() : "Unknown";
-      Debug("GradientBackground", "Orientation set to: " + orientationText);
-
-      LG_Shape(shape, layoutGradient);
-      Shape shapeEnum = Shape.fromUnderlyingValue(shape);
-      String shapeText = shapeEnum != null ? shapeEnum.name() : "Unknown";
-      Debug("GradientBackground", "Shape set to: " + shapeText);
-
-      List<Integer> cornerRadiusList = parseCsvRow(cornerRadius);
-      LG_CornerRadius(cornerRadiusList, layoutGradient);
-      Debug("GradientBackground", "Corner radius applied: " + cornerRadiusList.toString());
-
-      int scaledStrokeWidth = strokeWidth * 5;
-      layoutGradient.setStroke(scaledStrokeWidth, strokeColor);
-      Debug("GradientBackground", "Stroke set with width: " + scaledStrokeWidth + " and color: " + strokeColor);
-
-      // Clear previous background color to avoid overlay issues
-      component.getView().setBackgroundColor(0xFFFFFF);
-      component.getView().setBackground(layoutGradient);
-
-      Debug("GradientBackground", "Gradient background successfully applied.");
-    } catch (Exception e) {
-      ErrorOccurred("GradientBackground", "Failed to set gradient background: " + e.getMessage());
-      Debug("GradientBackground", "Exception: " + e.toString());
+  public void CustomDrawableBackground(AndroidViewComponent component,
+                                          Object colorsList,
+                                          @Options(GradientType.class) int gradientType,
+                                          @Options(Orientation.class) int orientation,
+                                          @Options(Shape.class) int shape,
+                                          String cornerSizes,
+                                          String cutCorners,
+                                          Object stroke
+                                       ) {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP) {
+      ErrorOccurred("CustomDrawableBackground", "Custom background requires API 21+");
+      Debug("CustomDrawableBackground", "Custom background requires API 21+");
+      return;
     }
+
+    int[] colors = parseGradientColors(colorsList);
+    Debug("CustomDrawableBackground", "Applied colors: " + Arrays.toString(colors));
+
+    Integer mGradientType = GRADIENT_MAP.getOrDefault(gradientType, 0);
+    GradientType gradientTypeEnum = GradientType.fromUnderlyingValue(gradientType);
+    String gradientTypeText = gradientTypeEnum != null ? gradientTypeEnum.name() : "Unknown";
+    Debug("CustomDrawableBackground", "Gradient type set to: " + gradientTypeText);
+
+    List<Integer> cornerList = parseCsvRow(cornerSizes);
+    float[] finalCorners = new float[cornerList.size()];
+    for (int i = 0; i < cornerList.size(); i++) {
+      finalCorners[i] = (float) dpToPx(cornerList.get(i));
+    }
+    Debug("CustomDrawableBackground", "Corner list applied: " + Arrays.toString(finalCorners));
+
+    boolean[] cut = parseCutCornerFlags(cutCorners);
+    Debug("CustomDrawableBackground", "Cut corners applied: " + Arrays.toString(cut));
+
+    GradientDrawable.Orientation mOrienttaion = ORIENTATION_MAP.getOrDefault(orientation, GradientDrawable.Orientation.LEFT_RIGHT);
+    Orientation orientationEnum = Orientation.fromUnderlyingValue(orientation);
+    String orientationText = orientationEnum != null ? orientationEnum.name() : "Unknown";
+    Debug("CustomDrawableBackground", "Orientation set to: " + orientationText);
+
+    Integer mShape = SHAPE_MAP.getOrDefault(shape, 0);
+    Shape shapeEnum = Shape.fromUnderlyingValue(shape);
+    String shapeText = shapeEnum != null ? shapeEnum.name() : "Unknown";
+    Debug("CustomDrawableBackground", "Shape set to: " + shapeText);
+
+    int strokeType = CustomBackgroundDrawable.STROKE_TYPE_SOLID;
+    int strokeWidth = 0;
+    int[] strokeColors = new int[]{0,0};
+    float dashLength = 0;
+    float gapLength = 0;
+    GradientDrawable.Orientation strokeOrientation = GradientDrawable.Orientation.LEFT_RIGHT;
+    int strokeGradientType = 0;
+
+    if (stroke instanceof Map) {
+      @SuppressWarnings("unchecked")
+      Map<String, Object> strokeMap = (Map<String, Object>) stroke;
+
+      strokeType = STROKE_TYPE_MAP.getOrDefault(((Number) strokeMap.get("strokeType")).intValue(), CustomBackgroundDrawable.STROKE_TYPE_SOLID);
+      strokeWidth = dpToPx(((Number) strokeMap.get("strokeWidth")).intValue());
+      strokeColors = parseGradientColors(strokeMap.get("strokeColors"));
+      dashLength = ((Number) strokeMap.get("dashLength")).floatValue();
+      gapLength = ((Number) strokeMap.get("gapLength")).floatValue();
+      strokeOrientation = ORIENTATION_MAP.getOrDefault(((Number) strokeMap.get("strokeOrientation")).intValue(), GradientDrawable.Orientation.LEFT_RIGHT);
+      strokeGradientType = GRADIENT_MAP.getOrDefault(((Number) strokeMap.get("strokeGradientType")).intValue(), 0);
+
+      Debug("CustomDrawableBackground", "Stroke colors set to : " + Arrays.toString(strokeColors));
+
+    } else if ("0".equals(stroke.toString().trim()) || "false".equalsIgnoreCase(stroke.toString().trim())) {
+      Debug("CustomDrawableBackground", "No stroke applied as stroke = " + stroke);
+    } else {
+      ErrorOccurred("CustomDrawableBackground", "Invalid stroke format: " + stroke);
+      Debug("CustomDrawableBackground", "Invalid stroke: defaulting to no stroke.");
+    }
+
+
+
+    CustomBackgroundDrawable drawable = new CustomBackgroundDrawable.Builder()
+            .setColors(colors)
+            .setGradientType(mGradientType)
+            .setOrientation(mOrienttaion)
+            .setShape(mShape)
+            .setCornerSizes(finalCorners[0], finalCorners[1], finalCorners[2], finalCorners[3])
+            .setCornerTypes(cut[0], cut[1], cut[2], cut[3])
+            .setStroke(strokeColors, strokeWidth)
+            .setStrokeType(strokeType, dashLength, gapLength)
+            .setStrokeGradientOrientation(strokeOrientation)
+            .setStrokeGradientType(strokeGradientType)
+            .build();
+
+
+    View view = component.getView();
+    view.setBackground(drawable);
   }
 
+  @SimpleFunction(description = "Stroke Config. Works only on Android 5.0+ (API 21+).")
+  public Map<String, Object> SetStroke(
+          @Options(StrokeType.class) int strokeType,
+          @Options(GradientType.class) int gradientType,
+          @Options(Orientation.class) int orientation,
+          int strokeWidth,
+          Object strokeColor,
+          float length,
+          float gap
+  ) {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP) {
+      ErrorOccurred("CustomDrawableBackground", "Custom background requires API 21+");
+      Debug("CustomDrawableBackground", "Custom background requires API 21+");
+      return Collections.singletonMap("strokeType", strokeType);
+    }
+
+    Map<String, Object> result = new HashMap<>();
+    result.put("strokeType", strokeType);
+    result.put("strokeWidth", strokeWidth);
+    result.put("strokeColors", strokeColor);
+    result.put("dashLength", length);
+    result.put("gapLength", gap);
+    result.put("strokeOrientation", orientation);
+    result.put("strokeGradientType", gradientType);
+    return result;
+  }
 
   @SimpleFunction(description = "Parses a color value. Supports:\n" +
           "- #RRGGBB (hex)\n" +
@@ -379,8 +524,11 @@ public class QuickDecor extends AndroidNonvisibleComponent {
     return resultColor;
   }
 
-
-
+  @SimpleFunction(description = "Convert dp to px")
+  public int dpToPx(int dp) {
+    float density = Density();
+    return Math.round(dp * density);
+  }
 
   //----------------------------------------------------------------------
   // Private Methods
@@ -435,6 +583,115 @@ public class QuickDecor extends AndroidNonvisibleComponent {
     }
   }
 
+  private boolean[] parseCutCornerFlags(String input) {
+    if (input == null || input.trim().isEmpty()) {
+      ErrorOccurred("parseCutCorners", "Error: Input string is empty.");
+      Debug("parseCutCorners", "Input string is empty.");
+      return new boolean[] { false, false, false, false };
+    }
+
+    String[] parts = input.split(",");
+    List<Boolean> result = new ArrayList<>();
+
+    for (int i = 0; i < Math.min(4, parts.length); i++) {
+      String val = parts[i].trim().toLowerCase();
+      boolean parsed;
+      switch (val) {
+        case "t":
+        case "true":
+        case "1":
+          parsed = true;
+          break;
+        case "f":
+        case "false":
+        case "0":
+          parsed = false;
+          break;
+        default:
+          ErrorOccurred("parseCutCorners", "Invalid value '" + val + "' at index " + i + ". Using false.");
+          Debug("parseCutCorners", "Invalid boolean at index " + i + ": '" + val + "', defaulting to false");
+          parsed = false;
+      }
+      result.add(parsed);
+    }
+
+    // Expand result to boolean[4]
+    boolean[] finalCut = new boolean[4];
+    switch (result.size()) {
+      case 1:
+        Arrays.fill(finalCut, result.get(0));
+        break;
+      case 2:
+        finalCut[0] = result.get(0);
+        finalCut[1] = result.get(1);
+        finalCut[2] = result.get(0);
+        finalCut[3] = result.get(1);
+        break;
+      case 3:
+        finalCut[0] = result.get(0);
+        finalCut[1] = result.get(1);
+        finalCut[2] = result.get(2);
+        finalCut[3] = false;
+        break;
+      case 4:
+        for (int i = 0; i < 4; i++) {
+          finalCut[i] = result.get(i);
+        }
+        break;
+      default:
+        ErrorOccurred("parseCutCorners", "No valid values found. Defaulting to all false.");
+        Debug("parseCutCorners", "Returning all-false cut corners.");
+        Arrays.fill(finalCut, false);
+    }
+
+    Debug("parseCutCorners", "Parsed cut corners: " + Arrays.toString(finalCut));
+    return finalCut;
+  }
+
+  public int[] parseGradientColors(Object colors) {
+    if (colors instanceof YailList) {
+      YailList yailList = (YailList) colors;
+      if (yailList.size() == 0) {
+        return new int[] {0,0};
+      }
+      if (yailList.size() == 1) {
+        int color = FormatColor(yailList.get(1)); // YailList is 1-indexed!
+        return new int[] { color, color };
+      }
+      // For 2+ items, process all items
+      int[] result = new int[yailList.size()];
+      for (int i = 1; i <= yailList.size(); i++) { // YailList starts at index 1
+        result[i-1] = FormatColor(yailList.get(i));
+      }
+      return result;
+    } else if (colors instanceof List) {
+      List<?> rawList = (List<?>) colors;
+      if (rawList.size() == 0) {
+        return new int[] {0,0};
+      }
+      if (rawList.size() == 1) {
+        int color = FormatColor(rawList.get(0));
+        return new int[] { color, color };
+      }
+      // For 2+ items, process all items
+      int[] result = new int[rawList.size()];
+      for (int i = 0; i < rawList.size(); i++) {
+        result[i] = FormatColor(rawList.get(i));
+      }
+      return result;
+    } else {
+      // Not a list — treat as a single color input
+      if (colors == null || colors.toString().trim().isEmpty()) {
+        return new int[] {
+                FormatColor("#00000000"),
+                FormatColor("#00000000")
+        };
+      }
+      int color = FormatColor(colors);
+      return new int[] { color, color };
+    }
+  }
+
   private int parseHexColor(String hex) {
     Debug("parseHexColor", "Input hex string: " + hex);
     hex = hex.replace("#", "").toUpperCase(Locale.ROOT);
@@ -479,7 +736,6 @@ public class QuickDecor extends AndroidNonvisibleComponent {
     Debug("parseHexColor", "Invalid hex length, throwing exception");
     throw new IllegalArgumentException("Hex color must be 6 or 8 digits: " + hex);
   }
-
 
   private void LG_BgColor(YailList colorsList, GradientDrawable layoutGradient) {
     String[] arry = colorsList.toStringArray();
@@ -530,10 +786,10 @@ public class QuickDecor extends AndroidNonvisibleComponent {
       return;
     }
 
-    float topLeft = cornersRadius.get(0) * 5f;
-    float topRight = cornersRadius.get(1) * 5f;
-    float bottomRight = cornersRadius.get(2) * 5f;
-    float bottomLeft = cornersRadius.get(3) * 5f;
+    float topLeft = dpToPx(cornersRadius.get(0));
+    float topRight = dpToPx(cornersRadius.get(1));
+    float bottomRight = dpToPx(cornersRadius.get(2));
+    float bottomLeft = dpToPx(cornersRadius.get(3));
 
     float[] radii = {
             topLeft, topLeft,         // top-left

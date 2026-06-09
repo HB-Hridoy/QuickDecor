@@ -4,7 +4,7 @@ author: Hridoy
 # Define the minimum Android SDK level your extension supports.
 min_sdk: 7
 # If enabled, extension will be optimized using ProGuard.
-proguard: true
+proguard: false
 # If enabled, extension will be optimized using R8.
 R8: true
 # If enabled, Kotlin Standard Libraries will be included with the extension.

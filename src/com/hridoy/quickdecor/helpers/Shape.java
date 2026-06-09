@@ -7,7 +7,8 @@ import java.util.Map;
 
 public enum Shape implements OptionList<Integer> {
     Rectangle(0),
-    Circle(1);
+    Circle(1),
+    Line(2);
 
     private Integer shape;
 
