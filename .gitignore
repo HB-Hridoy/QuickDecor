@@ -3,4 +3,5 @@
 /.vscode
 .classpath
 .project
+/out
 /.fast
