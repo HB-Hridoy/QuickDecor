@@ -204,80 +204,6 @@ public class QuickDecor extends AndroidNonvisibleComponent {
     }
   }
 
-  @SimpleFunction(description = "Creates or updates a gradient background template identified by a unique ID.\n" +
-          "Parameters:\n" +
-          "- id: Unique identifier for the gradient template.\n" +
-          "- colorsList: List of colors for the gradient.\n" +
-          "- orientation: Gradient orientation (see Orientation options).\n" +
-          "- shape: Shape of the gradient background (see Shape options).\n" +
-          "- cornerRadius: Corner radius for rounded corners (supports dimension units).\n" +
-          "- strokeWidth: Width of the border stroke in pixels.\n" +
-          "- strokeColor: Color integer for the stroke color.\n" +
-          "If a template with the given ID exists, it will be replaced with the new one.")
-  public void CreateDrawableBackgroundTemplate(
-          String id,
-          Object colorsList,
-          @Options(GradientType.class) int gradientType,
-          @Options(Orientation.class) int orientation,
-          @Options(Shape.class) int shape,
-          String cornerSizes,
-          String cutCorners,
-          Object stroke
-  ) {
-    Debug("CreateDrawableBackgroundTemplate", "Creating/updating template with ID: " + id);
-    
-    BackgroundDrawableTemplate template = new BackgroundDrawableTemplate(
-            colorsList,
-            gradientType,
-            orientation,
-            shape,
-            cornerSizes,
-            cutCorners,
-            stroke
-    );
-
-    if (GRADIENT_BACKGROUND_TEMPLATES.containsKey(id)) {
-      GRADIENT_BACKGROUND_TEMPLATES.replace(id, template);
-      Debug("CreateDrawableBackgroundTemplate", "Replaced existing template with ID: " + id);
-    } else {
-      GRADIENT_BACKGROUND_TEMPLATES.put(id, template);
-      Debug("CreateDrawableBackgroundTemplate", "Added new template with ID: " + id);
-    }
-  }
-
-
-  @SimpleFunction(description = "Applies a previously created gradient background template to the specified component.\n" +
-          "Parameters:\n" +
-          "- id: The unique identifier of the gradient template to apply.\n" +
-          "- component: The component to which the gradient background will be applied.\n" +
-          "Raises an error if the template ID does not exist.")
-  public void ApplyDrawableBackgroundTemplate(final String id, final AndroidViewComponent component) {
-    Debug("ApplyDrawableBackgroundTemplate", "Attempting to apply template with ID: " + id);
-
-    BackgroundDrawableTemplate template = GRADIENT_BACKGROUND_TEMPLATES.get(id);
-
-    if (template != null) {
-      Debug("ApplyDrawableBackgroundTemplate", "Template found. Applying to component: " + component.getClass().getSimpleName());
-
-      CustomDrawableBackground(
-              component,
-              template.getColorsList(),
-              template.getGradientType(),
-              template.getOrientation(),
-              template.getShape(),
-              template.getCornerSizes(),
-              template.getCutCorners(), 
-              template.getStroke()
-      );
-
-      Debug("ApplyDrawableBackgroundTemplate", "Gradient background applied successfully.");
-      lastUsedComponent = component;
-    } else {
-      ErrorOccurred("ApplyDrawableBackgroundTemplate", "Template ID '" + id + "' does not exist.");
-      Debug("ApplyDrawableBackgroundTemplate", "Failed to find template with ID: " + id);
-    }
-  }
-
   @SimpleFunction(description = "Applies a gradient background with optional cut corners to a component. Requires Android 5.0+ (API 21+).\n" +
           "Parameters:\n" +
           "- component: The view to apply the background to.\n" +
@@ -411,6 +337,80 @@ public class QuickDecor extends AndroidNonvisibleComponent {
     result.put("strokeOrientation", orientation);
     result.put("strokeGradientType", gradientType);
     return result;
+  }
+
+  @SimpleFunction(description = "Creates or updates a gradient background template identified by a unique ID.\n" +
+          "Parameters:\n" +
+          "- id: Unique identifier for the gradient template.\n" +
+          "- colorsList: List of colors for the gradient.\n" +
+          "- orientation: Gradient orientation (see Orientation options).\n" +
+          "- shape: Shape of the gradient background (see Shape options).\n" +
+          "- cornerRadius: Corner radius for rounded corners (supports dimension units).\n" +
+          "- strokeWidth: Width of the border stroke in pixels.\n" +
+          "- strokeColor: Color integer for the stroke color.\n" +
+          "If a template with the given ID exists, it will be replaced with the new one.")
+  public void CreateDrawableBackgroundTemplate(
+          String id,
+          Object colorsList,
+          @Options(GradientType.class) int gradientType,
+          @Options(Orientation.class) int orientation,
+          @Options(Shape.class) int shape,
+          String cornerSizes,
+          String cutCorners,
+          Object stroke
+  ) {
+    Debug("CreateDrawableBackgroundTemplate", "Creating/updating template with ID: " + id);
+
+    BackgroundDrawableTemplate template = new BackgroundDrawableTemplate(
+            colorsList,
+            gradientType,
+            orientation,
+            shape,
+            cornerSizes,
+            cutCorners,
+            stroke
+    );
+
+    if (GRADIENT_BACKGROUND_TEMPLATES.containsKey(id)) {
+      GRADIENT_BACKGROUND_TEMPLATES.replace(id, template);
+      Debug("CreateDrawableBackgroundTemplate", "Replaced existing template with ID: " + id);
+    } else {
+      GRADIENT_BACKGROUND_TEMPLATES.put(id, template);
+      Debug("CreateDrawableBackgroundTemplate", "Added new template with ID: " + id);
+    }
+  }
+
+
+  @SimpleFunction(description = "Applies a previously created gradient background template to the specified component.\n" +
+          "Parameters:\n" +
+          "- id: The unique identifier of the gradient template to apply.\n" +
+          "- component: The component to which the gradient background will be applied.\n" +
+          "Raises an error if the template ID does not exist.")
+  public void ApplyDrawableBackgroundTemplate(final String id, final AndroidViewComponent component) {
+    Debug("ApplyDrawableBackgroundTemplate", "Attempting to apply template with ID: " + id);
+
+    BackgroundDrawableTemplate template = GRADIENT_BACKGROUND_TEMPLATES.get(id);
+
+    if (template != null) {
+      Debug("ApplyDrawableBackgroundTemplate", "Template found. Applying to component: " + component.getClass().getSimpleName());
+
+      CustomDrawableBackground(
+              component,
+              template.getColorsList(),
+              template.getGradientType(),
+              template.getOrientation(),
+              template.getShape(),
+              template.getCornerSizes(),
+              template.getCutCorners(),
+              template.getStroke()
+      );
+
+      Debug("ApplyDrawableBackgroundTemplate", "Gradient background applied successfully.");
+      lastUsedComponent = component;
+    } else {
+      ErrorOccurred("ApplyDrawableBackgroundTemplate", "Template ID '" + id + "' does not exist.");
+      Debug("ApplyDrawableBackgroundTemplate", "Failed to find template with ID: " + id);
+    }
   }
 
   @SimpleFunction(description = "Parses a color value. Supports:\n" +
