@@ -1,6 +1,7 @@
 /.fast
 /.idea
 /.vscode
+/.github
 .classpath
 .project
-/.fast
+/out
